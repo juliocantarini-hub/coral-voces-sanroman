@@ -1,6 +1,6 @@
 {
-  "name": "Coro del Encuentro",
-  "short_name": "C_Encuentro",
+  "name": "Coro San Román",
+  "short_name": "C_SanRoman",
   "description": "Plataforma de estudio y organización coral",
   "start_url": "./index.html",
   "scope": "/",
