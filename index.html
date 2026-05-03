@@ -1,0 +1,32 @@
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0F6E56" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coro del Encuentro</title>
+    <meta name="description" content="Plataforma de estudio y organización coral" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      setTimeout(() => {
+        if (document.readyState !== "complete") {
+          console.warn("Carga lenta detectada, limpiando caché...");
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (let registration of registrations) {
+                registration.unregister();
+              }
+            });
+          }
+        }
+      }, 6000);
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
