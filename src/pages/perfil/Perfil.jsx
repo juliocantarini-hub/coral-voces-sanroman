@@ -3,6 +3,12 @@ import { useAuth } from '../../hooks/useAuth'
 
 const VOCES = ['soprano', 'contralto', 'tenor', 'bajo']
 
+const TAMANOS = [
+  { id: 'normal',  label: 'A',  clase: '',               size: '13px' },
+  { id: 'mediana', label: 'A',  clase: 'fuente-mediana', size: '15px' },
+  { id: 'grande',  label: 'A',  clase: 'fuente-grande',  size: '17px' },
+]
+
 export default function Perfil() {
   const { perfil, actualizarPerfil, actualizarContrasena } = useAuth()
 
@@ -21,6 +27,9 @@ export default function Perfil() {
   const [guardandoPass, setGuardandoPass] = useState(false)
   const [mensajePass, setMensajePass] = useState('')
   const [errorPass, setErrorPass]   = useState('')
+  const [tamanoFuente, setTamanoFuente] = useState(
+    () => localStorage.getItem('tamanoFuente') || 'normal'
+  )
 
   useEffect(() => {
     if (!perfil) return
@@ -35,6 +44,15 @@ export default function Perfil() {
   }, [perfil])
 
   function set(campo) { return e => setForm(f => ({ ...f, [campo]: e.target.value })) }
+
+  function cambiarTamano(id) {
+    setTamanoFuente(id)
+    localStorage.setItem('tamanoFuente', id)
+    document.body.classList.remove('fuente-mediana', 'fuente-grande')
+    const t = TAMANOS.find(t => t.id === id)
+    if (t.clase) document.body.classList.add(t.clase)
+    window.dispatchEvent(new Event('tamanoFuenteCambiado'))
+  }
 
   async function handleGuardar(e) {
     e.preventDefault()
@@ -144,7 +162,7 @@ export default function Perfil() {
       </div>
 
       {/* Seguridad */}
-      <div style={{ background: '#FFFFFF', borderRadius: '14px', padding: '22px', border: '1px solid #E8E6DF' }}>
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', padding: '22px', border: '1px solid #E8E6DF', marginBottom: '14px' }}>
         <h3 style={estilos.seccionTitulo}>Seguridad</h3>
         {!cambioPass ? (
           <button onClick={() => setCambioPass(true)}
@@ -202,6 +220,35 @@ export default function Perfil() {
           </form>
         )}
       </div>
+
+      {/* Tamaño de fuente */}
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', padding: '22px', border: '1px solid #E8E6DF' }}>
+        <h3 style={estilos.seccionTitulo}>Accesibilidad</h3>
+        <p style={{ fontSize: '12px', color: '#888780', marginBottom: '12px' }}>Tamaño del texto en toda la aplicación</p>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {TAMANOS.map(t => {
+            const activo = tamanoFuente === t.id
+            return (
+              <button key={t.id} type="button" onClick={() => cambiarTamano(t.id)}
+                style={{
+                  width: '48px', height: '40px', borderRadius: '8px', cursor: 'pointer',
+                  border: `1.5px solid ${activo ? '#1D9E75' : '#D3D1C7'}`,
+                  background: activo ? '#E1F5EE' : '#FFFFFF',
+                  color: activo ? '#04342C' : '#5F5E5A',
+                  fontWeight: activo ? '600' : '400',
+                  fontSize: t.size,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                {t.label}
+              </button>
+            )
+          })}
+          <span style={{ fontSize: '12px', color: '#888780', marginLeft: '4px' }}>
+            { tamanoFuente === 'normal' ? 'Normal' : tamanoFuente === 'mediana' ? 'Mediano' : 'Grande' }
+          </span>
+        </div>
+      </div>
+
     </div>
   )
 }

@@ -12,6 +12,13 @@ function useEsMovil() {
   return esMovil
 }
 
+function getZoom() {
+  const t = localStorage.getItem('tamanoFuente')
+  if (t === 'mediana') return 1.07
+  if (t === 'grande')  return 1.14
+  return 1
+}
+
 export default function AppLayout({ children }) {
   const esMovil = useEsMovil()
   const location = useLocation()
@@ -19,12 +26,19 @@ export default function AppLayout({ children }) {
   const [seccionAdmin, setSeccionAdmin] = useState(
     window.location.pathname.startsWith('/admin')
   )
+  const [zoom, setZoom] = useState(getZoom)
 
   useEffect(() => {
     if (location.pathname.startsWith('/admin')) {
       setSeccionAdmin(true)
     }
   }, [location.pathname])
+
+  useEffect(() => {
+    const fn = () => setZoom(getZoom())
+    window.addEventListener('tamanoFuenteCambiado', fn)
+    return () => window.removeEventListener('tamanoFuenteCambiado', fn)
+  }, [])
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F1EFE8' }}>
@@ -37,7 +51,7 @@ export default function AppLayout({ children }) {
 
       {/* Sidebar */}
       {(!esMovil || abierto) && (
-        <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50, display: 'flex', flexDirection: 'column', zoom: zoom }}>
           {esMovil && (
             <button onClick={() => setAbierto(false)}
               style={{ position: 'absolute', top: '10px', right: '-44px', width: '36px', height: '36px', borderRadius: '50%', background: '#0A4A3A', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 51 }}>
@@ -65,7 +79,7 @@ export default function AppLayout({ children }) {
       )}
 
       {/* Contenido */}
-      <main style={{ marginLeft: esMovil ? 0 : '210px', padding: esMovil ? '60px 16px 24px' : '28px 32px', flex: 1, minHeight: '100vh', width: esMovil ? '100%' : 'auto' }}>
+      <main style={{ marginLeft: esMovil ? 0 : '210px', padding: esMovil ? '60px 16px 24px' : '28px 32px', flex: 1, minHeight: '100vh', width: esMovil ? '100%' : 'auto', zoom: zoom }}>
         {children}
       </main>
     </div>

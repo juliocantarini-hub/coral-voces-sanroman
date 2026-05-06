@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useAvisos } from '../../hooks/useAvisos'
@@ -37,6 +37,13 @@ const ICONOS = {
   estudio:    "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z",
 }
 
+function getZoom() {
+  const t = localStorage.getItem('tamanoFuente')
+  if (t === 'mediana') return 1.07
+  if (t === 'grande')  return 1.14
+  return 1
+}
+
 function LogoCorum() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', paddingTop: '24px', paddingBottom: '15px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
@@ -72,6 +79,13 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
   const { perfil, cerrarSesion, esAdmin, esDirector } = useAuth()
   const { noLeidos } = useAvisos()
   const [mostrarAyuda, setMostrarAyuda] = useState(false)
+  const [zoom, setZoom] = useState(getZoom)
+
+  useEffect(() => {
+    const fn = () => setZoom(getZoom())
+    window.addEventListener('tamanoFuenteCambiado', fn)
+    return () => window.removeEventListener('tamanoFuenteCambiado', fn)
+  }, [])
 
   const iniciales = perfil?.nombre
     ? perfil.nombre.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
@@ -97,7 +111,7 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
   const navItems = esMenuAdmin ? NAV_ADMIN : NAV_CANTANTE
 
   return (
-    <div style={{ width: '210px', minHeight: '100vh', background: '#0A4A3A', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '210px', minHeight: '100vh', background: '#0A4A3A', display: 'flex', flexDirection: 'column', zoom: zoom }}>
 
       {/* Logo */}
       <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
@@ -108,7 +122,7 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
             </svg>
           </div>
           <div>
-            <div style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#9FE1CB' }}>{import.meta.env.VITE_CORO_NOMBRE || 'Coro'}</div>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#9FE1CB' }}>Coro San Román</div>
             <div style={{ fontSize: '10px', color: 'rgba(159,225,203,0.5)' }}>Plataforma coral</div>
           </div>
         </div>
@@ -177,7 +191,7 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
           </div>
         )}
 
-        {/* Nombre + ayuda — sin borde arriba */}
+        {/* Nombre + ayuda */}
         <div style={{ padding: '12px 14px 10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: 'white', flexShrink: 0 }}>
