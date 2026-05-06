@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useObras } from '../../hooks/useObras'
 import { useAuth } from '../../hooks/useAuth'
+import { supabase } from '../../lib/supabase'
 
 const ESTADOS = [
   { valor: '',          label: 'Todas' },
@@ -48,6 +49,30 @@ function MatIcon({ tiene, title }) {
   )
 }
 
+function useDedicacion(usuarioId, totalObras) {
+  const [porcentaje, setPorcentaje] = useState(null)
+
+  useEffect(() => {
+    if (!usuarioId || !totalObras) return
+    async function cargar() {
+      const { data } = await supabase
+        .from('actividad_estudio')
+        .select('obra_id')
+        .eq('usuario_id', usuarioId)
+        .eq('tipo', 'apertura')
+        .eq('coro_id', '7b1778ba-0e49-45ff-8c7c-9c6c25e23aec')
+      if (!data) return
+      const obrasUnicas = new Set(data.map(a => a.obra_id))
+      const pctCobertura  = (obrasUnicas.size / totalObras) * 100
+      const pctFrecuencia = (Math.min(data.length, totalObras) / totalObras) * 100
+      setPorcentaje(Math.round((pctCobertura + pctFrecuencia) / 2))
+    }
+    cargar()
+  }, [usuarioId, totalObras])
+
+  return porcentaje
+}
+
 export default function Repertorio() {
   const navigate = useNavigate()
   const { perfil } = useAuth()
@@ -67,15 +92,36 @@ export default function Repertorio() {
     })
   }, [obras])
 
+  const totalObras = obras.length
+  const dedicacion = useDedicacion(perfil?.id, totalObras)
+
+  const colorDedicacion = dedicacion === null ? '#888780'
+    : dedicacion >= 70 ? '#27500A'
+    : dedicacion >= 40 ? '#D85A30'
+    : '#E24B4A'
+
+  const bgDedicacion = dedicacion === null ? '#F1EFE8'
+    : dedicacion >= 70 ? '#EAF3DE'
+    : dedicacion >= 40 ? '#FAECE7'
+    : '#FCEBEB'
+
   return (
     <div>
-      <div style={{ marginBottom: '20px' }}>
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: 'normal', color: '#1A1A18', margin: '0 0 4px' }}>
-          Repertorio
-        </h2>
-        <p style={{ fontSize: '13px', color: '#888780', margin: 0 }}>
-          {cargando ? 'Cargando...' : `${obrasFiltradas.length} obra${obrasFiltradas.length !== 1 ? 's' : ''}`}
-        </p>
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: 'normal', color: '#1A1A18', margin: '0 0 4px' }}>
+            Repertorio
+          </h2>
+          <p style={{ fontSize: '13px', color: '#888780', margin: 0 }}>
+            {cargando ? 'Cargando...' : `${obrasFiltradas.length} obra${obrasFiltradas.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
+        {dedicacion !== null && (
+          <div style={{ background: bgDedicacion, border: `1px solid ${colorDedicacion}22`, borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', color: '#5F5E5A' }}>Tu dedicación al estudio:</span>
+            <span style={{ fontSize: '15px', fontWeight: '700', color: colorDedicacion }}>{dedicacion}%</span>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
