@@ -30,15 +30,18 @@ export function useHistorialAsistencia(perfilId) {
 
   useEffect(() => {
     if (!perfilId) return
-    supabase
-      .from('registros_asistencia')
-      .select(`*, listas_asistencia(fecha, descripcion)`)
-      .eq('perfil_id', perfilId)
-      .order('listas_asistencia(fecha)', { ascending: false })
-      .then(({ data }) => {
-        setHistorial(data || [])
-        setCargando(false)
-      })
+    const cargar = async () => {
+      const coro = await getCoroActual()
+      const { data } = await supabase
+        .from('registros_asistencia')
+        .select(`*, listas_asistencia(fecha, descripcion, coro_id)`)
+        .eq('perfil_id', perfilId)
+        .eq('listas_asistencia.coro_id', coro.id)
+        .order('listas_asistencia(fecha)', { ascending: false })
+      setHistorial((data || []).filter(r => r.listas_asistencia?.coro_id === coro.id))
+      setCargando(false)
+    }
+    cargar()
   }, [perfilId])
 
   return { historial, cargando }
