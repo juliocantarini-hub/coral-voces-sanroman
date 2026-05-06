@@ -26,6 +26,7 @@ export default function EstudioAdmin() {
       .select('id, nombre, voz')
       .eq('rol', 'cantante')
       .eq('estado', 'activo')
+      .eq('coro_id', '7b1778ba-0e49-45ff-8c7c-9c6c25e23aec')
       .order('nombre')
 
     if (!cantantes || cantantes.length === 0) {
