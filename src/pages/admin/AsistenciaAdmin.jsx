@@ -144,7 +144,7 @@ export default function AsistenciaAdmin() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setListaActiva(lista)}
                     style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
-                    {total > 0 ? 'Editar' : 'Tomar asistencia'}
+                    {total > 0 ? 'Tomar lista' : 'Tomar asistencia'}
                   </button>
                   <button onClick={() => setConfirmEliminar(lista)}
                     style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '8px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>✕</button>
