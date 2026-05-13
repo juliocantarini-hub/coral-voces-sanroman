@@ -104,7 +104,8 @@ export function calcularEstadisticas(historial) {
   const meses = {}
   historial.forEach(r => {
     if (!r.listas_asistencia) return
-    const fecha = new Date(r.listas_asistencia.fecha)
+    // Usar T12:00:00 para evitar desfase de timezone (UTC vs Argentina UTC-3)
+    const fecha = new Date(r.listas_asistencia.fecha + 'T12:00:00')
     const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
     if (!meses[key]) meses[key] = { total: 0, presentes: 0 }
     meses[key].total++
@@ -114,7 +115,7 @@ export function calcularEstadisticas(historial) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, val]) => ({
       mes: key,
-      label: new Date(key + '-01').toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }),
+      label: new Date(key + '-15').toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }),
       porcentaje: Math.round((val.presentes / val.total) * 100),
       presentes: val.presentes,
       total: val.total,
