@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useAvisos } from '../../hooks/useAvisos'
+import { usePresencia } from '../../hooks/usePresencia'
 
 const NAV_CANTANTE = [
   { ruta: '/',           label: 'Inicio',         icono: 'inicio' },
@@ -10,7 +11,7 @@ const NAV_CANTANTE = [
   { ruta: '/avisos',     label: 'Avisos',         icono: 'campana', badge: true },
   { ruta: '/blog',       label: 'Textos',         icono: 'blog' },
   { ruta: '/asistencia', label: 'Mi asistencia',  icono: 'calendario' },
-  { ruta: '/companeros', label: 'Mis compañeros', icono: 'usuarios' },
+  { ruta: '/companeros', label: 'Mis compañeros', icono: 'usuarios', presencia: true },
   { ruta: '/perfil',     label: 'Mi perfil',      icono: 'perfil' },
 ]
 
@@ -22,7 +23,7 @@ const NAV_ADMIN = [
   { ruta: '/admin/estudio',    label: 'Estudio',    icono: 'estudio' },
   { ruta: '/admin/avisos',     label: 'Avisos',     icono: 'campana' },
   { ruta: '/admin/blog',       label: 'Textos',     icono: 'blog' },
-  { ruta: '/admin/usuarios',   label: 'Cantantes',  icono: 'usuarios' },
+  { ruta: '/admin/usuarios',   label: 'Cantantes',  icono: 'usuarios', presencia: true },
 ]
 
 const ICONOS = {
@@ -75,6 +76,7 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
   const location = useLocation()
   const { perfil, cerrarSesion, esAdmin, esDirector } = useAuth()
   const { noLeidos } = useAvisos()
+  const activos = usePresencia()
   const [mostrarAyuda, setMostrarAyuda] = useState(false)
   const [zoom, setZoom] = useState(getZoom)
   const [padding, setPadding] = useState(getPadding)
@@ -107,12 +109,10 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
 
   const esMenuAdmin = seccionAdmin && (esAdmin || esDirector)
   const navItems = esMenuAdmin ? NAV_ADMIN : NAV_CANTANTE
+  const cantidadActivos = activos.length
 
   return (
-    // Contenedor externo: altura fija, sin zoom
     <div style={{ width: '210px', height: '100vh', background: '#0A4A3A', display: 'flex', flexDirection: 'column' }}>
-
-      {/* Interior con zoom aplicado al contenido visual */}
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', zoom: zoom }}>
 
         {/* Logo */}
@@ -146,7 +146,7 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
           </div>
         )}
 
-        {/* Nav — scrolleable */}
+        {/* Nav */}
         <nav style={{ flex: 1, padding: '10px 0', overflowY: 'auto', minHeight: 0 }}>
           {navItems.map(item => {
             const activo = isActive(item.ruta, esMenuAdmin)
@@ -169,6 +169,12 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
                     {noLeidos > 9 ? '9+' : noLeidos}
                   </span>
                 )}
+                {item.presencia && cantidadActivos > 0 && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#5DCAA5', display: 'inline-block' }} />
+                    <span style={{ fontSize: '10px', color: 'rgba(159,225,203,0.8)' }}>{cantidadActivos}</span>
+                  </span>
+                )}
               </button>
             )
           })}
@@ -176,28 +182,26 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
 
         {/* Footer */}
         <div style={{ flexShrink: 0, background: '#0A4A3A' }}>
-
-          {/* Popup ayuda */}
           {mostrarAyuda && (
             <div style={{ margin: '0 14px 10px', background: '#0F6E56', borderRadius: '10px', padding: '12px 14px', position: 'relative', border: '1px solid rgba(255,255,255,0.15)' }}>
               <button onClick={() => setMostrarAyuda(false)}
                 style={{ position: 'absolute', top: '6px', right: '8px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '14px', lineHeight: 1 }}>
                 ✕
               </button>
-              <div style={{ fontSize: '11px', color: '#FFFFFF', fontWeight: '600', marginBottom: '5px' }}>
-                📲 Acceso directo
-              </div>
+              <div style={{ fontSize: '11px', color: '#FFFFFF', fontWeight: '600', marginBottom: '5px' }}>📲 Acceso directo</div>
               <div style={{ fontSize: '11px', color: 'rgba(159,225,203,0.85)', lineHeight: '1.6' }}>
                 Si no elegiste instalar la app podés agregar un acceso directo en tu pantalla de inicio, tocá los <strong style={{ color: '#FFFFFF' }}>⋮</strong> de Chrome y elegí <strong style={{ color: '#FFFFFF' }}>"Agregar a pantalla de inicio"</strong>
               </div>
             </div>
           )}
 
-          {/* Nombre + ayuda */}
           <div style={{ padding: '12px 14px 10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: 'white', flexShrink: 0 }}>
-                {iniciales}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: 'white' }}>
+                  {iniciales}
+                </div>
+                <span style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, borderRadius: '50%', background: '#5DCAA5', border: '1.5px solid #0A4A3A', display: 'block' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.9)', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -223,7 +227,6 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
             </button>
             <LogoCorum />
           </div>
-
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { PresenciaProvider } from './hooks/usePresencia'
 import RutaProtegida from './components/RutaProtegida'
 import AppLayout from './components/layout/AppLayout'
 
@@ -33,7 +34,6 @@ import { AvisosAdmin } from './pages/admin/AvisosAdmin'
 import { ArticulosAdmin, ArticuloForm } from './pages/admin/ArticulosAdmin'
 import EstudioAdmin    from './pages/admin/EstudioAdmin'
 
-// Ruta pública: redirige al inicio si ya hay sesión
 function RutaPublica({ children }) {
   const { usuario, cargando } = useAuth()
   if (cargando) return null
@@ -41,156 +41,56 @@ function RutaPublica({ children }) {
   return children
 }
 
-// Wrapper que agrega el layout con sidebar
 function ConLayout({ children }) {
   return <AppLayout>{children}</AppLayout>
+}
+
+function ConPresencia({ children }) {
+  const { perfil } = useAuth()
+  return <PresenciaProvider perfil={perfil}>{children}</PresenciaProvider>
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* ── Rutas públicas ──────────────────────────────────────────── */}
-          <Route path="/login" element={
-            <RutaPublica><Login /></RutaPublica>
-          } />
-          <Route path="/registro" element={
-            <RutaPublica><Registro /></RutaPublica>
-          } />
-          <Route path="/recuperar" element={
-            <RutaPublica><RecuperarContrasena /></RutaPublica>
-          } />
-          <Route path="/reset-password" element={<ResetContrasena />} />
+        <ConPresencia>
+          <Routes>
+            <Route path="/login" element={<RutaPublica><Login /></RutaPublica>} />
+            <Route path="/registro" element={<RutaPublica><Registro /></RutaPublica>} />
+            <Route path="/recuperar" element={<RutaPublica><RecuperarContrasena /></RutaPublica>} />
+            <Route path="/reset-password" element={<ResetContrasena />} />
 
-          {/* ── Área del cantante ───────────────────────────────────────── */}
-          <Route path="/" element={
-            <RutaProtegida>
-              <ConLayout><Inicio /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/repertorio" element={
-            <RutaProtegida>
-              <ConLayout><Repertorio /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/repertorio/:id" element={
-            <RutaProtegida>
-              <ConLayout><ObraDetalle /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/calendario" element={
-            <RutaProtegida>
-              <ConLayout><Calendario /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/calendario/:id" element={
-            <RutaProtegida>
-              <ConLayout><EventoDetalle /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/avisos" element={
-            <RutaProtegida>
-              <ConLayout><Avisos /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/blog" element={
-            <RutaProtegida>
-              <ConLayout><Blog /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/blog/:id" element={
-            <RutaProtegida>
-              <ConLayout><ArticuloDetalle /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/asistencia" element={
-            <RutaProtegida><ConLayout><MiAsistencia /></ConLayout></RutaProtegida>
-          } />
-          <Route path="/companeros" element={
-            <RutaProtegida><ConLayout><MisCompaneros /></ConLayout></RutaProtegida>
-          } />
-          <Route path="/perfil" element={
-            <RutaProtegida>
-              <ConLayout><Perfil /></ConLayout>
-            </RutaProtegida>
-          } />
+            <Route path="/" element={<RutaProtegida><ConLayout><Inicio /></ConLayout></RutaProtegida>} />
+            <Route path="/repertorio" element={<RutaProtegida><ConLayout><Repertorio /></ConLayout></RutaProtegida>} />
+            <Route path="/repertorio/:id" element={<RutaProtegida><ConLayout><ObraDetalle /></ConLayout></RutaProtegida>} />
+            <Route path="/calendario" element={<RutaProtegida><ConLayout><Calendario /></ConLayout></RutaProtegida>} />
+            <Route path="/calendario/:id" element={<RutaProtegida><ConLayout><EventoDetalle /></ConLayout></RutaProtegida>} />
+            <Route path="/avisos" element={<RutaProtegida><ConLayout><Avisos /></ConLayout></RutaProtegida>} />
+            <Route path="/blog" element={<RutaProtegida><ConLayout><Blog /></ConLayout></RutaProtegida>} />
+            <Route path="/blog/:id" element={<RutaProtegida><ConLayout><ArticuloDetalle /></ConLayout></RutaProtegida>} />
+            <Route path="/asistencia" element={<RutaProtegida><ConLayout><MiAsistencia /></ConLayout></RutaProtegida>} />
+            <Route path="/companeros" element={<RutaProtegida><ConLayout><MisCompaneros /></ConLayout></RutaProtegida>} />
+            <Route path="/perfil" element={<RutaProtegida><ConLayout><Perfil /></ConLayout></RutaProtegida>} />
 
-          {/* ── Área de administración ──────────────────────────────────── */}
-          <Route path="/admin" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><AdminDashboard /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/usuarios" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><Usuarios /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/obras" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><ObrasLista /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/obras/nueva" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><ObraForm /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/obras/:id" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><ObraForm /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/eventos" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><EventosLista /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/eventos/nuevo" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><EventoForm /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/eventos/:id" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><EventoForm /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/asistencia" element={
-            <RutaProtegida rolesPermitidos={['admin','director']}>
-              <ConLayout><AsistenciaAdmin /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/avisos" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><AvisosAdmin /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/blog" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><ArticulosAdmin /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/blog/nuevo" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><ArticuloForm /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/blog/:id" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><ArticuloForm /></ConLayout>
-            </RutaProtegida>
-          } />
-          <Route path="/admin/estudio" element={
-            <RutaProtegida rolesPermitidos={['admin', 'director']}>
-              <ConLayout><EstudioAdmin /></ConLayout>
-            </RutaProtegida>
-          } />
+            <Route path="/admin" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AdminDashboard /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/usuarios" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><Usuarios /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/obras" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ObrasLista /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/obras/nueva" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ObraForm /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/obras/:id" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ObraForm /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/eventos" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EventosLista /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/eventos/nuevo" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EventoForm /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/eventos/:id" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EventoForm /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/asistencia" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AsistenciaAdmin /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/avisos" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AvisosAdmin /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/blog" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ArticulosAdmin /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/blog/nuevo" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ArticuloForm /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/blog/:id" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ArticuloForm /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/estudio" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EstudioAdmin /></ConLayout></RutaProtegida>} />
 
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ConPresencia>
       </AuthProvider>
     </BrowserRouter>
   )
