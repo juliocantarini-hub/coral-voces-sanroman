@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useListasAsistencia, useRegistrosLista, crearLista, eliminarLista, marcarAsistencia, resetearAsistencia } from '../../hooks/useAsistencia'
+import { supabase } from '../../lib/supabase'
 
 const ESTADO_STYLE = {
   presente:    { bg: '#EAF3DE', color: '#27500A', txt: 'Presente',    emoji: '✓' },
@@ -49,7 +50,7 @@ export default function AsistenciaAdmin() {
   }
 
   if (listaActiva) {
-    return <TomarAsistencia lista={listaActiva} onVolver={() => { setListaActiva(null); recargar() }} />
+    return <TomarAsistencia lista={listaActiva} onVolver={() => { setListaActiva(null); recargar() }} onTituloActualizado={(nuevoTitulo) => setListaActiva(l => ({ ...l, descripcion: nuevoTitulo }))} />
   }
 
   return (
@@ -144,7 +145,7 @@ export default function AsistenciaAdmin() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setListaActiva(lista)}
                     style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
-                    {total > 0 ? 'Tomar lista' : 'Tomar asistencia'}
+                    Tomar asistencia
                   </button>
                   <button onClick={() => setConfirmEliminar(lista)}
                     style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '8px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>✕</button>
@@ -196,11 +197,14 @@ export default function AsistenciaAdmin() {
 }
 
 // ─── Componente para tomar asistencia ─────────────────────────────────────────
-function TomarAsistencia({ lista, onVolver }) {
+function TomarAsistencia({ lista, onVolver, onTituloActualizado }) {
   const { registros, cantantes, cargando, recargar } = useRegistrosLista(lista.id)
   const [guardando, setGuardando] = useState({})
   const [busqueda, setBusqueda] = useState('')
   const [vozFiltro, setVozFiltro] = useState('')
+  const [editandoTitulo, setEditandoTitulo] = useState(false)
+  const [nuevoTitulo, setNuevoTitulo] = useState(lista.descripcion)
+  const [guardandoTitulo, setGuardandoTitulo] = useState(false)
 
   function getEstado(perfilId) {
     const reg = registros.find(r => r.perfil_id === perfilId)
@@ -212,6 +216,18 @@ function TomarAsistencia({ lista, onVolver }) {
     await marcarAsistencia(lista.id, perfilId, estado)
     await recargar()
     setGuardando(g => ({ ...g, [perfilId]: false }))
+  }
+
+  async function handleGuardarTitulo() {
+    if (!nuevoTitulo.trim() || nuevoTitulo.trim() === lista.descripcion) {
+      setEditandoTitulo(false)
+      return
+    }
+    setGuardandoTitulo(true)
+    await supabase.from('listas_asistencia').update({ descripcion: nuevoTitulo.trim() }).eq('id', lista.id)
+    setGuardandoTitulo(false)
+    setEditandoTitulo(false)
+    onTituloActualizado(nuevoTitulo.trim())
   }
 
   const fecha = new Date(lista.fecha + 'T12:00:00')
@@ -236,9 +252,39 @@ function TomarAsistencia({ lista, onVolver }) {
       </button>
 
       <div style={{ background: '#FFFFFF', border: '1px solid #E8E6DF', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', color: '#1A1A18', margin: '0 0 4px' }}>
-          {lista.descripcion}
-        </h2>
+        {/* Título editable */}
+        {editandoTitulo ? (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+            <input
+              value={nuevoTitulo}
+              onChange={e => setNuevoTitulo(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleGuardarTitulo(); if (e.key === 'Escape') setEditandoTitulo(false) }}
+              autoFocus
+              style={{ flex: 1, fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', color: '#1A1A18', border: '1px solid #0F6E56', borderRadius: '8px', padding: '4px 10px', outline: 'none' }}
+            />
+            <button onClick={handleGuardarTitulo} disabled={guardandoTitulo}
+              style={{ padding: '4px 12px', fontSize: '12px', borderRadius: '8px', border: 'none', background: '#0F6E56', color: '#FFFFFF', cursor: 'pointer' }}>
+              {guardandoTitulo ? '...' : 'Guardar'}
+            </button>
+            <button onClick={() => setEditandoTitulo(false)}
+              style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '8px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', color: '#1A1A18', margin: 0 }}>
+              {nuevoTitulo}
+            </h2>
+            <button onClick={() => setEditandoTitulo(true)}
+              title="Editar título"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', color: '#B4B2A9' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+              </svg>
+            </button>
+          </div>
+        )}
         <p style={{ fontSize: '13px', color: '#888780', margin: '0 0 12px' }}>
           {fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
