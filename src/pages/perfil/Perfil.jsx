@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 
-const VOCES = ['soprano', 'contralto', 'tenor', 'bajo']
+const VOCES = ['soprano', 'contralto', 'tenor', 'bajo', 'director']
 
 const TAMANOS = [
   { id: 'normal',  label: 'A',  clase: '',               size: '13px' },
@@ -144,15 +144,15 @@ export default function Perfil() {
           </Campo>
 
           <Campo label="Cuerda vocal">
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {VOCES.map(v => (
-                <button key={v} type="button" onClick={() => setForm(f => ({ ...f, voz: v }))}
-                  style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', border: `1.5px solid ${form.voz === v ? '#1D9E75' : '#D3D1C7'}`, background: form.voz === v ? '#E1F5EE' : '#FFFFFF', color: form.voz === v ? '#04342C' : '#5F5E5A', fontWeight: form.voz === v ? '500' : '400', textTransform: 'capitalize' }}>
-                  {v}
-                </button>
-              ))}
-            </div>
-          </Campo>
+  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+    {VOCES.map(v => (
+      <button key={v} type="button" onClick={() => setForm(f => ({ ...f, voz: v }))}
+        style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', border: `1.5px solid ${form.voz === v ? '#1D9E75' : '#D3D1C7'}`, background: form.voz === v ? '#E1F5EE' : '#FFFFFF', color: form.voz === v ? '#04342C' : '#5F5E5A', fontWeight: form.voz === v ? '500' : '400', textTransform: 'capitalize' }}>
+        {v === 'director' ? 'Director/a' : v}
+      </button>
+    ))}
+  </div>
+</Campo>
 
           <button type="submit" disabled={guardando}
             style={{ marginTop: '8px', height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: guardando ? '#9FE1CB' : '#0F6E56', color: '#FFFFFF', fontSize: '14px', cursor: guardando ? 'not-allowed' : 'pointer', fontWeight: '500' }}>

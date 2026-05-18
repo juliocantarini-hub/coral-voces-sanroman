@@ -52,17 +52,31 @@ export function useEvento(id) {
   const cargar = useCallback(async () => {
     if (!id) return
     setCargando(true)
-    const coro = await getCoroActual()
-    const { data, error: err } = await supabase
-      .from('eventos')
-      .select(`*, eventos_obras(obra_id, orden, obras(id, titulo, compositor, estado)), asistencias(estado, perfil_id, perfiles(nombre, voz))`)
-      .eq('id', id)
-      .eq('coro_id', coro.id)
-      .single()
+    try {
+      const coro = await getCoroActual()
+      
+      // Query principal sin joins problemáticos
+      const { data, error: err } = await supabase
+        .from('eventos')
+        .select('*, eventos_obras(obra_id, orden, obras(id, titulo, compositor, estado))')
+        .eq('id', id)
+        .eq('coro_id', coro.id)
+        .single()
 
-    if (err) { setError('Evento no encontrado.'); setCargando(false); return }
-    setEvento(data)
-    setCargando(false)
+      if (err) { setError('Evento no encontrado.'); setCargando(false); return }
+
+      // Query separada para asistencias
+      const { data: asistencias } = await supabase
+        .from('asistencias')
+        .select('estado, perfil_id, perfiles(nombre, voz)')
+        .eq('evento_id', id)
+
+      setEvento({ ...data, asistencias: asistencias || [] })
+      setCargando(false)
+    } catch (err) {
+      setError('Evento no encontrado.')
+      setCargando(false)
+    }
   }, [id])
 
   useEffect(() => { cargar() }, [cargar])

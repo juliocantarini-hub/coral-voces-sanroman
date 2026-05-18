@@ -5,7 +5,7 @@ import {
   AuthLayout, Campo, Input, Boton, Alerta
 } from '../../components/ui/AuthUI'
 
-const VOCES = ['soprano', 'contralto', 'tenor', 'bajo']
+const VOCES = ['soprano', 'contralto', 'tenor', 'bajo', 'director']
 
 function soloDigitos(str) {
   return str.split('').filter(c => c >= '0' && c <= '9').join('')
@@ -137,14 +137,16 @@ function handleFechaTexto(e) {
         </Campo>
 
         <Campo label="Cuerda vocal *" error={errores.voz}>
-          <select value={form.voz} onChange={set('voz')}
-            style={{ width: '100%', height: '42px', border: `1px solid ${errores.voz ? '#E24B4A' : '#D3D1C7'}`, borderRadius: '8px', padding: '0 14px', fontSize: '14px', color: form.voz ? '#1A1A18' : '#B4B2A9', background: '#FFFFFF', outline: 'none', cursor: 'pointer', appearance: 'none' }}>
-            <option value="" disabled>Seleccioná tu voz</option>
-            {VOCES.map(v => (
-              <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
-            ))}
-          </select>
-        </Campo>
+  <select value={form.voz} onChange={set('voz')}
+    style={{ width: '100%', height: '42px', border: `1px solid ${errores.voz ? '#E24B4A' : '#D3D1C7'}`, borderRadius: '8px', padding: '0 14px', fontSize: '14px', color: form.voz ? '#1A1A18' : '#B4B2A9', background: '#FFFFFF', outline: 'none', cursor: 'pointer', appearance: 'none' }}>
+    <option value="" disabled>Seleccioná tu voz</option>
+    {VOCES.map(v => (
+      <option key={v} value={v}>
+        {v === 'director' ? 'Director/a' : v.charAt(0).toUpperCase() + v.slice(1)}
+      </option>
+    ))}
+  </select>
+</Campo>
 
         <Campo label="Teléfono / Celular">
           <Input type="tel" placeholder="+54 11 0000-0000" value={form.telefono} onChange={set('telefono')} />

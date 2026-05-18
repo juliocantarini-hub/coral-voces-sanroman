@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { crearEvento, actualizarEvento, publicarEvento } from '../../hooks/useEventos'
+import { getCoroActual } from '../../lib/coro'
 
 const TIPOS = ['ensayo', 'concierto', 'reunion', 'extra']
 
@@ -28,9 +29,18 @@ export default function EventoForm() {
 
   // Cargar obras publicadas para vincular
   useEffect(() => {
-    supabase.from('obras').select('id, titulo, compositor').eq('publicada', true).order('titulo')
-      .then(({ data }) => setObrasDisponibles(data || []))
-  }, [])
+  async function cargarObras() {
+    const coro = await getCoroActual()
+    const { data } = await supabase
+      .from('obras')
+      .select('id, titulo, compositor')
+      .eq('publicada', true)
+      .eq('coro_id', coro.id)
+      .order('titulo')
+    setObrasDisponibles(data || [])
+  }
+  cargarObras()
+}, [])
 
   // Cargar datos del evento si es edición
   useEffect(() => {

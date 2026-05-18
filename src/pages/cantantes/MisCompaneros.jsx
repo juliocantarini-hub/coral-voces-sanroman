@@ -31,29 +31,31 @@ const VOCES_COLOR = {
 export default function MisCompaneros() {
   const { perfil } = useAuth()
   const activos = usePresencia()
-  const [cantantes, setCantantes] = useState([])
+  const [todos, setTodos]         = useState([])
   const [cargando, setCargando]   = useState(true)
   const [busqueda, setBusqueda]   = useState('')
   const [vozFiltro, setVozFiltro] = useState('')
 
   useEffect(() => {
-    async function cargar() {
-      const coro = await getCoroActual()
-      const { data } = await supabase
-        .from('perfiles')
-        .select('id, nombre, voz, telefono, fecha_nacimiento')
-        .eq('coro_id', coro.id)
-        .eq('estado', 'activo')
-        .neq('rol', 'admin')
-        .order('nombre')
-      setCantantes(data || [])
-      setCargando(false)
-    }
-    cargar()
-  }, [])
+  async function cargar() {
+    const coro = await getCoroActual()
+    const { data } = await supabase
+      .from('perfiles')
+      .select('id, nombre, voz, telefono, fecha_nacimiento, rol')
+      .eq('coro_id', coro.id)
+      .eq('estado', 'activo')
+      .order('nombre')
+    setTodos(data || [])
+    setCargando(false)
+  }
+  cargar()
+}, [])
+
+  const directores = todos.filter(c => c.rol === 'director' || c.rol === 'admin')
+  const cantantes  = todos.filter(c => c.rol !== 'director' && c.rol !== 'admin')
 
   const hoy = new Date()
-  const cumpleHoy = cantantes.filter(c => {
+  const cumpleHoy = todos.filter(c => {
     if (!c.fecha_nacimiento) return false
     const nac = new Date(c.fecha_nacimiento + 'T12:00:00')
     return nac.getMonth() === hoy.getMonth() && nac.getDate() === hoy.getDate()
@@ -68,6 +70,81 @@ export default function MisCompaneros() {
   const VOCES = ['soprano', 'contralto', 'tenor', 'bajo']
   const cantidadActivos = activos.length
 
+  function TarjetaPersona({ c, esDirector = false }) {
+    const vc = VOCES_COLOR[c.voz] || { bg: '#F1EFE8', color: '#5F5E5A' }
+    const diasCumple = proximoCumple(c.fecha_nacimiento)
+    const cumplePronto = diasCumple !== null && diasCumple <= 7
+    const esMiPerfil = c.id === perfil?.id
+    const estaActivo = activos.includes(c.id)
+    const waUrl = 'https://wa.me/' + formatearWA(c.telefono)
+
+    return (
+      <div style={{
+        background: '#FFFFFF',
+        border: `1px solid ${esDirector ? '#B4D8CE' : esMiPerfil ? '#B4D8CE' : '#E8E6DF'}`,
+        borderLeft: esDirector ? '3px solid #0F6E56' : undefined,
+        borderRadius: '12px', padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: '14px',
+      }}>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{
+            width: '44px', height: '44px', borderRadius: '50%',
+            background: esDirector ? '#E1F5EE' : vc.bg,
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: '16px', fontWeight: '600',
+            color: esDirector ? '#0F6E56' : vc.color,
+          }}>
+            {c.nombre?.charAt(0)?.toUpperCase() || '?'}
+          </div>
+          {estaActivo && (
+            <span style={{
+              position: 'absolute', bottom: 1, right: 1,
+              width: 11, height: 11, borderRadius: '50%',
+              background: '#1D9E75', border: '2px solid #fff', display: 'block',
+            }} />
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '14px', fontWeight: '500', color: '#1A1A18' }}>
+              {c.nombre}
+              {esMiPerfil && <span style={{ fontSize: '11px', color: '#888780', marginLeft: '6px' }}>(Yo)</span>}
+            </span>
+            {esDirector && (
+              <span style={{ fontSize: '10px', background: '#E1F5EE', color: '#0F6E56', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
+                Director/a
+              </span>
+            )}
+            {!esDirector && c.voz && (
+              <span style={{ fontSize: '10px', background: vc.bg, color: vc.color, padding: '2px 8px', borderRadius: '10px', fontWeight: '600', textTransform: 'capitalize' }}>
+                {c.voz}
+              </span>
+            )}
+            {estaActivo && (
+              <span style={{ fontSize: '10px', color: '#1D9E75', fontWeight: '500' }}>· en línea</span>
+            )}
+            {cumplePronto && (
+              <span style={{ fontSize: '11px', color: '#D85A30' }}>
+                {diasCumple === 0 ? '🎂 ¡Hoy!' : `🎂 en ${diasCumple} día${diasCumple !== 1 ? 's' : ''}`}
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: '12px', color: '#888780', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {c.telefono && (
+              <a href={waUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0F6E56', textDecoration: 'none', fontWeight: '500' }}>
+                💬 {c.telefono}
+              </a>
+            )}
+            {c.fecha_nacimiento && (
+              <span>🎂 {new Date(c.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div style={{ marginBottom: '20px' }}>
@@ -80,13 +157,8 @@ export default function MisCompaneros() {
           </p>
           {cantidadActivos > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#E1F5EE', borderRadius: '20px', padding: '3px 10px' }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%', background: '#1D9E75',
-                display: 'inline-block', animation: 'pulsar 2s ease-in-out infinite',
-              }} />
-              <span style={{ fontSize: '12px', color: '#04342C', fontWeight: '500' }}>
-                {cantidadActivos} en línea
-              </span>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1D9E75', display: 'inline-block', animation: 'pulsar 2s ease-in-out infinite' }} />
+              <span style={{ fontSize: '12px', color: '#04342C', fontWeight: '500' }}>{cantidadActivos} en línea</span>
               <style>{`@keyframes pulsar { 0%,100%{box-shadow:0 0 0 2px rgba(29,158,117,0.3)} 50%{box-shadow:0 0 0 4px rgba(29,158,117,0.15)} }`}</style>
             </div>
           )}
@@ -103,6 +175,19 @@ export default function MisCompaneros() {
         </div>
       )}
 
+      {/* Director/a arriba */}
+      {!cargando && directores.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+            Dirección
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {directores.map(c => <TarjetaPersona key={c.id} c={c} esDirector />)}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros cantantes */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="#B4B2A9" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }}>
@@ -143,71 +228,7 @@ export default function MisCompaneros() {
 
       {!cargando && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filtrados.map(c => {
-            const vc = VOCES_COLOR[c.voz] || { bg: '#F1EFE8', color: '#5F5E5A' }
-            const diasCumple = proximoCumple(c.fecha_nacimiento)
-            const cumplePronto = diasCumple !== null && diasCumple <= 7
-            const esMiPerfil = c.id === perfil?.id
-            const estaActivo = activos.includes(c.id)
-            const waUrl = 'https://wa.me/' + formatearWA(c.telefono)
-
-            return (
-              <div key={c.id} style={{
-                background: '#FFFFFF', border: `1px solid ${esMiPerfil ? '#B4D8CE' : '#E8E6DF'}`,
-                borderRadius: '12px', padding: '14px 16px',
-                display: 'flex', alignItems: 'center', gap: '14px',
-              }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{
-                    width: '44px', height: '44px', borderRadius: '50%',
-                    background: vc.bg, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: '16px', fontWeight: '600', color: vc.color,
-                  }}>
-                    {c.nombre?.charAt(0)?.toUpperCase() || '?'}
-                  </div>
-                  {estaActivo && (
-                    <span style={{
-                      position: 'absolute', bottom: 1, right: 1,
-                      width: 11, height: 11, borderRadius: '50%',
-                      background: '#1D9E75', border: '2px solid #fff', display: 'block',
-                    }} />
-                  )}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1A1A18' }}>
-                      {c.nombre}
-                      {esMiPerfil && <span style={{ fontSize: '11px', color: '#888780', marginLeft: '6px' }}>(Yo)</span>}
-                    </span>
-                    {c.voz && (
-                      <span style={{ fontSize: '10px', background: vc.bg, color: vc.color, padding: '2px 8px', borderRadius: '10px', fontWeight: '600', textTransform: 'capitalize' }}>
-                        {c.voz}
-                      </span>
-                    )}
-                    {estaActivo && (
-                      <span style={{ fontSize: '10px', color: '#1D9E75', fontWeight: '500' }}>· en línea</span>
-                    )}
-                    {cumplePronto && (
-                      <span style={{ fontSize: '11px', color: '#D85A30' }}>
-                        {diasCumple === 0 ? '🎂 ¡Hoy!' : `🎂 en ${diasCumple} día${diasCumple !== 1 ? 's' : ''}`}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#888780', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    {c.telefono && (
-                      <a href={waUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0F6E56', textDecoration: 'none', fontWeight: '500' }}>
-                        💬 {c.telefono}
-                      </a>
-                    )}
-                    {c.fecha_nacimiento && (
-                      <span>🎂 {new Date(c.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+          {filtrados.map(c => <TarjetaPersona key={c.id} c={c} />)}
         </div>
       )}
     </div>

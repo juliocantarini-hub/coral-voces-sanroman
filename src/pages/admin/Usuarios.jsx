@@ -6,14 +6,112 @@ const ROLES   = ['cantante', 'director', 'admin']
 const VOCES   = ['soprano', 'contralto', 'tenor', 'bajo']
 const ESTADOS = ['activo', 'pausa', 'inactivo']
 
+const VOCES_COLOR = {
+  soprano:   { bg: '#FAECE7', color: '#712B13' },
+  contralto: { bg: '#F3EFF8', color: '#3D1C6E' },
+  tenor:     { bg: '#E6F1FB', color: '#042C53' },
+  bajo:      { bg: '#E1F5EE', color: '#04342C' },
+}
+
 const ROLE_STYLE = {
   cantante: { bg: '#E1F5EE', color: '#04342C' },
   director: { bg: '#FAECE7', color: '#712B13' },
   admin:    { bg: '#E6F1FB', color: '#042C53' },
 }
 
+const CAMPOS_DISPONIBLES = [
+  { key: 'nombre',           label: 'Nombre' },
+  { key: 'telefono',         label: 'Celular' },
+  { key: 'dni',              label: 'DNI' },
+  { key: 'mail',             label: 'Mail' },
+  { key: 'fecha_nacimiento', label: 'Fecha de nacimiento' },
+]
+
 function useEsMovil() {
   return window.innerWidth <= 768
+}
+
+function imprimirListado(usuarios, camposSeleccionados) {
+  const voces = ['soprano', 'contralto', 'tenor', 'bajo']
+  const soloActivos = usuarios.filter(u => u.estado === 'activo' && u.rol !== 'director' && u.rol !== 'admin')
+  const porVoz = voces.reduce((acc, v) => {
+    acc[v] = soloActivos.filter(u => u.voz === v)
+    return acc
+  }, {})
+  const sinVoz = soloActivos.filter(u => !u.voz || !voces.includes(u.voz))
+  const directores = usuarios.filter(u => (u.rol === 'director' || u.rol === 'admin') && u.estado === 'activo')
+  const director = directores[0]
+
+  const campos = CAMPOS_DISPONIBLES.filter(c => camposSeleccionados.includes(c.key))
+  const filaHeader = `<tr>${campos.map(c => `<th>${c.label}</th>`).join('')}</tr>`
+
+  function seccion(titulo, lista) {
+    if (!lista.length) return ''
+    const filas = lista.map(u => `
+      <tr>
+        ${campos.map(c => {
+          if (c.key === 'fecha_nacimiento' && u[c.key]) {
+            return `<td>${new Date(u[c.key] + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</td>`
+          }
+          return `<td>${u[c.key] || '—'}</td>`
+        }).join('')}
+      </tr>
+    `).join('')
+    return `
+      <div class="seccion">
+        <h2>${titulo} <span class="count">(${lista.length})</span></h2>
+        <table>
+          <thead>${filaHeader}</thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    `
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Listado de cantantes</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Georgia, serif; font-size: 13px; color: #1A1A18; padding: 32px; }
+        .encabezado { margin-bottom: 28px; }
+        h1 { font-size: 22px; font-weight: normal; margin-bottom: 2px; }
+        .director { font-size: 13px; color: #0F6E56; margin-bottom: 4px; }
+        .fecha { font-size: 11px; color: #888780; }
+        .seccion { margin-bottom: 28px; page-break-inside: avoid; }
+        h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #0F6E56; border-bottom: 2px solid #0F6E56; padding-bottom: 6px; margin-bottom: 12px; }
+        .count { font-weight: normal; color: #888780; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 11px; font-weight: 600; color: #5F5E5A; text-transform: uppercase; letter-spacing: 0.3px; padding: 6px 8px; border-bottom: 1px solid #D3D1C7; }
+        td { padding: 7px 8px; border-bottom: 1px solid #F1EFE8; font-size: 13px; }
+        tr:last-child td { border-bottom: none; }
+        @media print { body { padding: 16px; } }
+      </style>
+    </head>
+    <body>
+      <div class="encabezado">
+        <h1>Coro Almafuerte</h1>
+        ${director ? `<div class="director">Director/a: ${director.nombre}</div>` : ''}
+        <div class="fecha">Generado el ${new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+      </div>
+      ${seccion('Sopranos', porVoz.soprano)}
+      ${seccion('Contraltos', porVoz.contralto)}
+      ${seccion('Tenores', porVoz.tenor)}
+      ${seccion('Bajos', porVoz.bajo)}
+      ${sinVoz.length ? seccion('Sin cuerda asignada', sinVoz) : ''}
+      ${seccion('Dirección', directores)}
+    </body>
+    </html>
+  `
+
+  const ventana = window.open('', '_blank')
+  ventana.document.write(html)
+  ventana.document.close()
+  ventana.focus()
+  setTimeout(() => ventana.print(), 500)
 }
 
 export default function Usuarios() {
@@ -30,27 +128,19 @@ export default function Usuarios() {
   const [nuevaPass, setNuevaPass]   = useState('')
   const [confirmarPass, setConfirmarPass] = useState('')
   const [resetando, setResetando]   = useState(false)
-  const [coroId, setCoroId]         = useState(null)
+  const [mostrarImprimir, setMostrarImprimir] = useState(false)
+  const [camposImprimir, setCamposImprimir]   = useState(['nombre', 'telefono', 'mail'])
   const esMovil = useEsMovil()
 
   const cargar = useCallback(async () => {
-    setCargando(true)
-    const coro = await getCoroActual()
-    setCoroId(coro.id)
-    const { data } = await supabase
-      .from('perfiles')
-      .select('*')
-      .eq('coro_id', coro.id)
-      .order('nombre')
-    setUsuarios(data || [])
-    setCargando(false)
-  }, [])
+  setCargando(true)
+  const coro = await getCoroActual()
+  const { data } = await supabase.from('perfiles').select('*').eq('coro_id', coro.id).order('nombre')
+  setUsuarios(data || [])
+  setCargando(false)
+}, [])
 
   useEffect(() => { cargar() }, [cargar])
-
-  useEffect(() => {
-    if (resetPass) setBusqueda('')
-  }, [resetPass])
 
   const filtrados = usuarios.filter(u =>
     !busqueda ||
@@ -69,6 +159,7 @@ export default function Usuarios() {
   async function guardarEdicion() {
     if (!editando) return
     setGuardando(true)
+    const scrollY = window.scrollY
     const cambios = {
       rol: editando.rol,
       voz: editando.voz,
@@ -76,19 +167,21 @@ export default function Usuarios() {
       mail: editando.mail || null,
       fecha_nacimiento: editando.fecha_nacimiento || null,
       dni: editando.dni || null,
+      telefono: editando.telefono || null,
     }
-    await supabase.from('perfiles').update(cambios).eq('id', editando.id).eq('coro_id', coroId)
+    await supabase.from('perfiles').update(cambios).eq('id', editando.id)
     setGuardando(false)
     setEditando(null)
     actualizarLocal(editando.id, cambios)
     setMensaje('Usuario actualizado.')
     setTimeout(() => setMensaje(''), 3000)
+    requestAnimationFrame(() => window.scrollTo(0, scrollY))
   }
 
   async function handleDesactivar() {
     if (!confirmDesactivar) return
     setProcesando(true)
-    await supabase.from('perfiles').update({ estado: 'inactivo' }).eq('id', confirmDesactivar.id).eq('coro_id', coroId)
+    await supabase.from('perfiles').update({ estado: 'inactivo' }).eq('id', confirmDesactivar.id)
     actualizarLocal(confirmDesactivar.id, { estado: 'inactivo' })
     setProcesando(false)
     setConfirmDesactivar(null)
@@ -99,7 +192,7 @@ export default function Usuarios() {
   async function handleEliminar() {
     if (!confirmEliminar) return
     setProcesando(true)
-    await supabase.from('perfiles').delete().eq('id', confirmEliminar.id).eq('coro_id', coroId)
+    await supabase.from('perfiles').delete().eq('id', confirmEliminar.id)
     setUsuarios(prev => prev.filter(u => u.id !== confirmEliminar.id))
     setProcesando(false)
     setConfirmEliminar(null)
@@ -124,7 +217,7 @@ export default function Usuarios() {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       const res = await fetch(
-        'https://xfddjbldwfqkdlhnwwhk.supabase.co/functions/v1/reset-password',
+        'https://anqgpzfijvpsauiycubc.supabase.co/functions/v1/reset-password',
         {
           method: 'POST',
           headers: {
@@ -156,89 +249,103 @@ export default function Usuarios() {
     setBusqueda('')
   }
 
+  useEffect(() => {
+    if (resetPass) setBusqueda('')
+  }, [resetPass])
+
+  function toggleCampo(key) {
+    setCamposImprimir(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    )
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: 'normal', color: '#1A1A18', margin: '0 0 2px' }}>Cantantes</h2>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '20px', fontWeight: 'normal', color: '#1A1A18', margin: '0 0 2px' }}>Cantantes y Director/a</h2>
           <p style={{ fontSize: '12px', color: '#888780', margin: 0 }}>
             {cargando ? 'Cargando...' : (
               <>
                 <span>{activos} activo{activos !== 1 ? 's' : ''}</span>
                 {pendientes > 0 && (
-                  <span style={{ color: '#D85A30', fontWeight: '500' }}>
-                    {' · '}{pendientes} en espera de activación
+                  <span style={{ marginLeft: '8px', color: '#D85A30', fontWeight: '500' }}>
+                    · {pendientes} pendiente{pendientes !== 1 ? 's' : ''}
                   </span>
                 )}
               </>
             )}
           </p>
         </div>
-        {mensaje && <div style={{ fontSize: '13px', color: '#04342C', background: '#E1F5EE', padding: '6px 12px', borderRadius: '8px' }}>{mensaje}</div>}
+        <button onClick={() => setMostrarImprimir(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', border: '1px solid #D3D1C7', background: '#FFFFFF', color: '#5F5E5A', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>
+          🖨 Imprimir listado
+        </button>
       </div>
 
+      {mensaje && (
+        <div style={{ background: '#EAF3DE', border: '1px solid #A8D080', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#27500A', marginBottom: '16px' }}>
+          {mensaje}
+        </div>
+      )}
+
       <div style={{ position: 'relative', marginBottom: '16px', maxWidth: '320px' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#B4B2A9" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#B4B2A9"
+          style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }}>
           <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
         </svg>
-        <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar cantante..."
-          autoComplete="off"
+        <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar cantante..."
           style={{ width: '100%', height: '36px', border: '1px solid #D3D1C7', borderRadius: '8px', padding: '0 12px 0 32px', fontSize: '13px', outline: 'none', background: '#FFFFFF', boxSizing: 'border-box' }} />
       </div>
 
       {cargando && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {[1,2,3,4].map(i => <div key={i} style={{ height: '56px', background: '#F1EFE8', borderRadius: '10px', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
+          {[1,2,3,4].map(i => <div key={i} style={{ height: '64px', background: '#F1EFE8', borderRadius: '10px', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
           <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
         </div>
       )}
 
       {/* MÓVIL: tarjetas */}
       {!cargando && esMovil && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtrados.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#888780', fontSize: '13px' }}>No hay usuarios que coincidan.</div>
+            <div style={{ textAlign: 'center', padding: '32px', color: '#888780', fontSize: '13px' }}>
+              No hay cantantes que coincidan.
+            </div>
           )}
           {filtrados.map(u => {
+            const vc = VOCES_COLOR[u.voz] || { bg: '#F1EFE8', color: '#888780' }
             const rs = ROLE_STYLE[u.rol] || ROLE_STYLE.cantante
             return (
-              <div key={u.id} style={{ background: '#FFFFFF', border: u.estado === 'pendiente' ? '1px solid #F0C5B4' : '1px solid #E8E6DF', borderRadius: '12px', padding: '14px', opacity: u.estado === 'inactivo' ? 0.6 : 1 }}>
+              <div key={u.id} style={{ background: '#FFFFFF', border: '1px solid #E8E6DF', borderRadius: '12px', padding: '14px', opacity: u.estado === 'inactivo' ? 0.5 : 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#1A1A18' }}>{u.nombre || '—'}</div>
-                    <div style={{ fontSize: '12px', color: '#888780', marginTop: '2px', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {u.voz || '—'}
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: u.estado === 'activo' ? '#639922' : u.estado === 'pendiente' ? '#D85A30' : '#D3D1C7', display: 'inline-block' }} />
-                      {u.estado === 'pendiente' ? <span style={{ color: '#D85A30', fontWeight: '500' }}>En espera</span> : u.estado}
-                    </div>
-                    {u.mail && <div style={{ fontSize: '11px', color: '#888780', marginTop: '2px' }}>{u.mail}</div>}
-                    {u.dni && <div style={{ fontSize: '11px', color: '#888780' }}>DNI: {u.dni}</div>}
+                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#1A1A18' }}>{u.nombre}</div>
+                    <div style={{ fontSize: '12px', color: '#888780', marginTop: '2px' }}>{u.mail || '—'}</div>
                   </div>
-                  <span style={{ background: rs.bg, color: rs.color, fontSize: '10px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px', textTransform: 'capitalize' }}>
-                    {u.rol}
-                  </span>
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {u.voz && <span style={{ fontSize: '10px', background: vc.bg, color: vc.color, padding: '2px 8px', borderRadius: '10px', fontWeight: '600', textTransform: 'capitalize' }}>{u.voz}</span>}
+                    <span style={{ fontSize: '10px', background: rs.bg, color: rs.color, padding: '2px 8px', borderRadius: '10px', fontWeight: '600', textTransform: 'capitalize' }}>{u.rol}</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   <button onClick={() => setEditando({ ...u })}
                     style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
                     Editar
                   </button>
                   <button onClick={() => abrirReset(u)}
-                    style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #C5D8F0', background: 'none', cursor: 'pointer', color: '#1A5276', fontWeight: '500' }}>
+                    style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#5F5E5A' }}>
                     Contraseña
                   </button>
-                  {u.estado !== 'inactivo' && u.estado !== 'pendiente' && (
+                  {u.estado === 'activo' && (
                     <button onClick={() => setConfirmDesactivar(u)}
-                      style={{ padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>
+                      style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>
                       Desactivar
                     </button>
                   )}
-                  {u.estado === 'inactivo' && (
-                    <button onClick={() => setConfirmEliminar(u)}
-                      style={{ padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: 'none', background: '#A32D2D', cursor: 'pointer', color: '#FFFFFF', fontWeight: '500' }}>
-                      Eliminar
-                    </button>
-                  )}
+                  <button onClick={() => setConfirmEliminar(u)}
+                    style={{ padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>✕</button>
                 </div>
               </div>
             )
@@ -246,51 +353,41 @@ export default function Usuarios() {
         </div>
       )}
 
-      {/* ESCRITORIO: filas */}
+      {/* DESKTOP: tabla */}
       {!cargando && !esMovil && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ background: '#FFFFFF', border: '1px solid #E8E6DF', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 90px 160px', padding: '10px 16px', background: '#F8F7F3', borderBottom: '1px solid #E8E6DF', fontSize: '11px', fontWeight: '600', color: '#888780', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            <span>Nombre</span><span>Voz</span><span>Rol</span><span>Estado</span><span style={{ textAlign: 'right' }}>Acciones</span>
+          </div>
           {filtrados.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#888780', fontSize: '13px' }}>No hay usuarios que coincidan.</div>
+            <div style={{ padding: '32px', textAlign: 'center', color: '#888780', fontSize: '13px' }}>
+              No hay cantantes que coincidan.
+            </div>
           )}
-          {filtrados.map(u => {
+          {filtrados.map((u, i) => {
+            const vc = VOCES_COLOR[u.voz] || { bg: '#F1EFE8', color: '#888780' }
             const rs = ROLE_STYLE[u.rol] || ROLE_STYLE.cantante
+            const esUltimo = i === filtrados.length - 1
             return (
-              <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 90px 80px auto', alignItems: 'center', gap: '12px', background: '#FFFFFF', border: u.estado === 'pendiente' ? '1px solid #F0C5B4' : '1px solid #E8E6DF', borderRadius: '10px', padding: '10px 14px', opacity: u.estado === 'inactivo' ? 0.6 : 1 }}>
+              <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 90px 160px', padding: '11px 16px', alignItems: 'center', borderBottom: esUltimo ? 'none' : '1px solid #F1EFE8', opacity: u.estado === 'inactivo' ? 0.5 : 1 }}>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18' }}>{u.nombre || '—'}</div>
-                  <div style={{ fontSize: '11px', color: '#888780', marginTop: '1px' }}>
-                    {u.mail || u.telefono || ''}
-                    {u.dni && ` · DNI: ${u.dni}`}
-                    {u.fecha_nacimiento && ` · ${new Date(u.fecha_nacimiento).toLocaleDateString('es-AR')}`}
-                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18' }}>{u.nombre}</div>
+                  <div style={{ fontSize: '11px', color: '#888780', marginTop: '1px' }}>{u.mail || '—'}</div>
                 </div>
-                <span style={{ fontSize: '12px', color: '#5F5E5A', textTransform: 'capitalize' }}>{u.voz || '—'}</span>
-                <span style={{ background: rs.bg, color: rs.color, fontSize: '10px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px', textTransform: 'capitalize', display: 'inline-block' }}>{u.rol}</span>
-                <span style={{ fontSize: '11px', color: u.estado === 'activo' ? '#27500A' : u.estado === 'pendiente' ? '#D85A30' : '#888780', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: u.estado === 'activo' ? '#639922' : u.estado === 'pendiente' ? '#D85A30' : '#D3D1C7', display: 'inline-block' }} />
-                  {u.estado === 'pendiente' ? 'En espera' : u.estado}
-                </span>
+                <span style={{ fontSize: '10px', background: vc.bg, color: vc.color, padding: '2px 8px', borderRadius: '10px', fontWeight: '600', textTransform: 'capitalize', display: 'inline-block' }}>{u.voz || '—'}</span>
+                <span style={{ fontSize: '10px', background: rs.bg, color: rs.color, padding: '2px 8px', borderRadius: '10px', fontWeight: '600', textTransform: 'capitalize', display: 'inline-block' }}>{u.rol}</span>
+                <span style={{ fontSize: '11px', color: u.estado === 'activo' ? '#27500A' : '#888780', textTransform: 'capitalize' }}>{u.estado}</span>
                 <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                   <button onClick={() => setEditando({ ...u })}
                     style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
                     Editar
                   </button>
                   <button onClick={() => abrirReset(u)}
-                    style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #C5D8F0', background: 'none', cursor: 'pointer', color: '#1A5276', fontWeight: '500' }}>
-                    Contraseña
+                    style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#5F5E5A' }}>
+                    Pass
                   </button>
-                  {u.estado !== 'inactivo' && u.estado !== 'pendiente' && (
-                    <button onClick={() => setConfirmDesactivar(u)}
-                      style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>
-                      Desactivar
-                    </button>
-                  )}
-                  {u.estado === 'inactivo' && (
-                    <button onClick={() => setConfirmEliminar(u)}
-                      style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: 'none', background: '#A32D2D', cursor: 'pointer', color: '#FFFFFF', fontWeight: '500' }}>
-                      Eliminar
-                    </button>
-                  )}
+                  <button onClick={() => setConfirmEliminar(u)}
+                    style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>✕</button>
                 </div>
               </div>
             )
@@ -298,19 +395,45 @@ export default function Usuarios() {
         </div>
       )}
 
-      {/* Modal reset contraseña */}
+      {/* Modal imprimir listado */}
+      {mostrarImprimir && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '24px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+            <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', margin: '0 0 6px' }}>Imprimir listado</h3>
+            <p style={{ fontSize: '13px', color: '#888780', margin: '0 0 20px' }}>Elegí los campos a incluir. Se agrupan por cuerda.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+              {CAMPOS_DISPONIBLES.map(c => (
+                <label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: '#1A1A18' }}>
+                  <input type="checkbox" checked={camposImprimir.includes(c.key)} onChange={() => toggleCampo(c.key)}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#0F6E56' }} />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setMostrarImprimir(false)}
+                style={{ flex: 1, height: '40px', borderRadius: '8px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', fontSize: '13px' }}>
+                Cancelar
+              </button>
+              <button onClick={() => { imprimirListado(usuarios, camposImprimir); setMostrarImprimir(false) }}
+                disabled={camposImprimir.length === 0}
+                style={{ flex: 2, height: '40px', borderRadius: '8px', border: 'none', background: camposImprimir.length === 0 ? '#D3D1C7' : '#0F6E56', color: '#FFFFFF', cursor: camposImprimir.length === 0 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: '500' }}>
+                🖨 Generar e imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal reset password */}
       {resetPass && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '24px' }}>
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
-            <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', margin: '0 0 4px' }}>Resetear contraseña</h3>
+            <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', margin: '0 0 4px' }}>Cambiar contraseña</h3>
             <p style={{ fontSize: '13px', color: '#888780', margin: '0 0 20px' }}>{resetPass.nombre}</p>
-            <div style={{ marginBottom: '14px' }}>
-              <label style={labelStyle}>Nueva contraseña</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
               <input type="password" value={nuevaPass} onChange={e => setNuevaPass(e.target.value)}
-                placeholder="Mínimo 6 caracteres" style={inputStyle} />
-            </div>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={labelStyle}>Confirmar contraseña</label>
+                placeholder="Nueva contraseña" style={inputStyle} />
               <input type="password" value={confirmarPass} onChange={e => setConfirmarPass(e.target.value)}
                 placeholder="Repetí la contraseña" style={inputStyle} />
             </div>

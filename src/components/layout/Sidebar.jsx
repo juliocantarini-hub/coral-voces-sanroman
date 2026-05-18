@@ -16,14 +16,15 @@ const NAV_CANTANTE = [
 ]
 
 const NAV_ADMIN = [
-  { ruta: '/admin',            label: 'Dashboard',  icono: 'dashboard' },
-  { ruta: '/admin/obras',      label: 'Obras',      icono: 'musica' },
-  { ruta: '/admin/eventos',    label: 'Eventos',    icono: 'calendario' },
-  { ruta: '/admin/asistencia', label: 'Asistencia', icono: 'calendario' },
-  { ruta: '/admin/estudio',    label: 'Estudio',    icono: 'estudio' },
-  { ruta: '/admin/avisos',     label: 'Avisos',     icono: 'campana' },
-  { ruta: '/admin/blog',       label: 'Textos',     icono: 'blog' },
-  { ruta: '/admin/usuarios',   label: 'Cantantes',  icono: 'usuarios', presencia: true },
+  { ruta: '/admin',              label: 'Dashboard',  icono: 'dashboard' },
+  { ruta: '/admin/obras',        label: 'Obras',      icono: 'musica' },
+  { ruta: '/admin/eventos',      label: 'Eventos',    icono: 'calendario' },
+  { ruta: '/admin/asistencia',   label: 'Asistencia', icono: 'calendario' },
+  { ruta: '/admin/estudio',      label: 'Estudio',    icono: 'estudio' },
+  { ruta: '/admin/avisos',       label: 'Avisos',     icono: 'campana' },
+  { ruta: '/admin/blog',         label: 'Textos',     icono: 'blog' },
+  { ruta: '/admin/usuarios',     label: 'Cantantes',  icono: 'usuarios', presencia: true },
+  { ruta: '/admin/asistente',    label: 'Asistente',  icono: 'asistente' },
 ]
 
 const ICONOS = {
@@ -36,6 +37,7 @@ const ICONOS = {
   dashboard:  "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z",
   usuarios:   "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
   estudio:    "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z",
+  asistente:  "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z",
 }
 
 function getPadding() {
@@ -124,27 +126,27 @@ export default function Sidebar({ seccionAdmin, toggleAdmin, onNavegar }) {
               </svg>
             </div>
             <div>
-              <div style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#9FE1CB' }}>Coro San Román</div>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#9FE1CB' }}>Coro Santa Ethnea</div>
               <div style={{ fontSize: '10px', color: 'rgba(159,225,203,0.5)' }}>Plataforma coral</div>
             </div>
           </div>
         </div>
 
         {/* Toggle Cantante/Admin */}
-        {(esAdmin || esDirector) && (
-          <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.25)', borderRadius: '8px', overflow: 'hidden' }}>
-              <button onClick={() => toggleAdmin(false)}
-                style={{ flex: 1, padding: '5px 0', fontSize: '11px', border: 'none', cursor: 'pointer', background: !seccionAdmin ? '#1D9E75' : 'none', color: !seccionAdmin ? '#FFFFFF' : 'rgba(255,255,255,0.5)', borderRadius: '6px' }}>
-                Cantante
-              </button>
-              <button onClick={() => toggleAdmin(true)}
-                style={{ flex: 1, padding: '5px 0', fontSize: '11px', border: 'none', cursor: 'pointer', background: seccionAdmin ? '#D85A30' : 'none', color: seccionAdmin ? '#FFFFFF' : 'rgba(255,255,255,0.5)', borderRadius: '6px' }}>
-                Admin
-              </button>
-            </div>
-          </div>
-        )}
+{(esAdmin || esDirector) && (
+  <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+    <div style={{ display: 'flex', background: 'rgba(0,0,0,0.25)', borderRadius: '8px', overflow: 'hidden' }}>
+      <button onClick={() => { toggleAdmin(false); handleNavegar('/') }}
+        style={{ flex: 1, padding: '5px 0', fontSize: '11px', border: 'none', cursor: 'pointer', background: !seccionAdmin ? '#1D9E75' : 'none', color: !seccionAdmin ? '#FFFFFF' : 'rgba(255,255,255,0.5)', borderRadius: '6px' }}>
+        Cantante
+      </button>
+      <button onClick={() => { toggleAdmin(true); handleNavegar('/admin') }}
+        style={{ flex: 1, padding: '5px 0', fontSize: '11px', border: 'none', cursor: 'pointer', background: seccionAdmin ? '#D85A30' : 'none', color: seccionAdmin ? '#FFFFFF' : 'rgba(255,255,255,0.5)', borderRadius: '6px' }}>
+        Admin
+      </button>
+    </div>
+  </div>
+)}
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '10px 0', overflowY: 'auto', minHeight: 0 }}>

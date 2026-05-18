@@ -36,7 +36,7 @@ export default function AdminDashboard() {
     { label: 'Nueva obra',    sub: 'Subir partitura y audios', ruta: '/admin/obras/nueva',   color: '#0F6E56', bg: '#E1F5EE' },
     { label: 'Nuevo evento',  sub: 'Ensayo o concierto',       ruta: '/admin/eventos/nuevo', color: '#378ADD', bg: '#E6F1FB' },
     { label: 'Nuevo aviso',   sub: 'Comunicado al coro',       ruta: '/admin/avisos',        color: '#D85A30', bg: '#FAECE7' },
-    { label: 'Nuevo artículo',sub: 'Publicar en el blog',      ruta: '/admin/blog/nuevo',    color: '#7C3AED', bg: '#F3EFF8' },
+    { label: 'Nuevo texto', sub: 'Publicar en Textos', ruta: '/admin/blog/nuevo', color: '#7C3AED', bg: '#F3EFF8' },,
   ]
 
   return (
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
             { label: 'Usuarios y roles',   sub: `${stats?.totalUsuarios || '—'} registrados`,  ruta: '/admin/usuarios' },
             { label: 'Obras y repertorio', sub: `${stats?.totalObras || '—'} obras en total`,   ruta: '/admin/obras' },
             { label: 'Eventos y ensayos',  sub: `${stats?.eventosFuturos || '—'} próximos`,     ruta: '/admin/eventos' },
-            { label: 'Avisos publicados',  sub: `${stats?.avisosPublicados || '—'} publicados`, ruta: '/admin/avisos' },
+            { label: 'Textos publicados', sub: `${stats?.avisosPublicados || '—'} publicados`, ruta: '/admin/blog' },
           ].map(item => (
             <div key={item.ruta} onClick={() => navigate(item.ruta)}
               style={{ background: '#FFFFFF', border: '1px solid #E8E6DF', borderRadius: '12px', padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'border-color 0.12s' }}
