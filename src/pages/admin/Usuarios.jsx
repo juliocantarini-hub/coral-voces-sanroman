@@ -133,12 +133,12 @@ export default function Usuarios() {
   const esMovil = useEsMovil()
 
   const cargar = useCallback(async () => {
-  setCargando(true)
-  const coro = await getCoroActual()
-  const { data } = await supabase.from('perfiles').select('*').eq('coro_id', coro.id).order('nombre')
-  setUsuarios(data || [])
-  setCargando(false)
-}, [])
+    setCargando(true)
+    const coro = await getCoroActual()
+    const { data } = await supabase.from('perfiles').select('*').eq('coro_id', coro.id).order('nombre')
+    setUsuarios(data || [])
+    setCargando(false)
+  }, [])
 
   useEffect(() => { cargar() }, [cargar])
 
@@ -217,7 +217,7 @@ export default function Usuarios() {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       const res = await fetch(
-        'https://anqgpzfijvpsauiycubc.supabase.co/functions/v1/reset-password',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-password`,
         {
           method: 'POST',
           headers: {
@@ -229,11 +229,12 @@ export default function Usuarios() {
       )
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Error desconocido')
-      setMensaje(`Contraseña de ${resetPass.nombre} actualizada correctamente.`)
-      setTimeout(() => setMensaje(''), 4000)
+      // ✅ FIX: cerrar modal PRIMERO, luego mostrar mensaje en la lista
       setResetPass(null)
       setNuevaPass('')
       setConfirmarPass('')
+      setMensaje(`Contraseña de ${resetPass.nombre} actualizada correctamente.`)
+      setTimeout(() => setMensaje(''), 4000)
     } catch (err) {
       setMensaje(`Error: ${err.message}`)
       setTimeout(() => setMensaje(''), 4000)
