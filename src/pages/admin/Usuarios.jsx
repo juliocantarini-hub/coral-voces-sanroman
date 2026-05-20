@@ -297,6 +297,7 @@ export default function Usuarios() {
         </svg>
         <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar cantante..."
+          autoComplete="off"
           style={{ width: '100%', height: '36px', border: '1px solid #D3D1C7', borderRadius: '8px', padding: '0 12px 0 32px', fontSize: '13px', outline: 'none', background: '#FFFFFF', boxSizing: 'border-box' }} />
       </div>
 
@@ -434,9 +435,9 @@ export default function Usuarios() {
             <p style={{ fontSize: '13px', color: '#888780', margin: '0 0 20px' }}>{resetPass.nombre}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
               <input type="password" value={nuevaPass} onChange={e => setNuevaPass(e.target.value)}
-                placeholder="Nueva contraseña" style={inputStyle} />
+                placeholder="Nueva contraseña" autoComplete="new-password" style={inputStyle} />
               <input type="password" value={confirmarPass} onChange={e => setConfirmarPass(e.target.value)}
-                placeholder="Repetí la contraseña" style={inputStyle} />
+                placeholder="Repetí la contraseña" autoComplete="new-password" style={inputStyle} />
             </div>
             {nuevaPass && confirmarPass && nuevaPass !== confirmarPass && (
               <p style={{ fontSize: '12px', color: '#A32D2D', margin: '-12px 0 16px', background: '#FCEBEB', padding: '6px 10px', borderRadius: '6px' }}>
