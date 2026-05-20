@@ -54,8 +54,8 @@ export function useEvento(id) {
     setCargando(true)
     try {
       const coro = await getCoroActual()
-      
-      // Query principal sin joins problemáticos
+
+      // Query principal
       const { data, error: err } = await supabase
         .from('eventos')
         .select('*, eventos_obras(obra_id, orden, obras(id, titulo, compositor, estado))')
@@ -65,13 +65,31 @@ export function useEvento(id) {
 
       if (err) { setError('Evento no encontrado.'); setCargando(false); return }
 
-      // Query separada para asistencias
+      // Query asistencias sin join a perfiles (FK compuesta no lo permite)
       const { data: asistencias } = await supabase
         .from('asistencias')
-        .select('estado, perfil_id, perfiles(nombre, voz)')
+        .select('estado, perfil_id')
         .eq('evento_id', id)
 
-      setEvento({ ...data, asistencias: asistencias || [] })
+      // Query perfiles del coro por separado
+      const perfilIds = (asistencias || []).map(a => a.perfil_id)
+      let perfilesMap = {}
+      if (perfilIds.length > 0) {
+        const { data: perfiles } = await supabase
+          .from('perfiles')
+          .select('id, nombre, voz')
+          .eq('coro_id', coro.id)
+          .in('id', perfilIds)
+        ;(perfiles || []).forEach(p => { perfilesMap[p.id] = p })
+      }
+
+      // Combinar asistencias con perfiles
+      const asistenciasConPerfil = (asistencias || []).map(a => ({
+        ...a,
+        perfiles: perfilesMap[a.perfil_id] || null,
+      }))
+
+      setEvento({ ...data, asistencias: asistenciasConPerfil })
       setCargando(false)
     } catch (err) {
       setError('Evento no encontrado.')
