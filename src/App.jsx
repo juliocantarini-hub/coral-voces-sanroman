@@ -33,6 +33,7 @@ import EventoForm      from './pages/admin/EventoForm'
 import { AvisosAdmin } from './pages/admin/AvisosAdmin'
 import { ArticulosAdmin, ArticuloForm } from './pages/admin/ArticulosAdmin'
 import EstudioAdmin    from './pages/admin/EstudioAdmin'
+import AsistenteRepertorio from './pages/admin/AsistenteRepertorio'
 
 function RutaPublica({ children }) {
   const { usuario, cargando } = useAuth()
@@ -87,6 +88,8 @@ export default function App() {
             <Route path="/admin/blog/nuevo" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ArticuloForm /></ConLayout></RutaProtegida>} />
             <Route path="/admin/blog/:id" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ArticuloForm /></ConLayout></RutaProtegida>} />
             <Route path="/admin/estudio" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EstudioAdmin /></ConLayout></RutaProtegida>} />
+
+            <Route path="/admin/asistente" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AsistenteRepertorio /></ConLayout></RutaProtegida>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
