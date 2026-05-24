@@ -11,12 +11,12 @@ const PROGRESO_OPTS = [
   { valor: 'estudiada',   label: 'Estudiada ✓', color: '#27500A', bg: '#EAF3DE' },
 ]
 
-const NOMBRES_AUDIO = {
-  drive_audio_general:   'DEMO',
-  drive_audio_soprano:   'Soprano',
-  drive_audio_contralto: 'Contralto',
-  drive_audio_tenor:     'Tenor',
-  drive_audio_bajo:      'Bajo',
+const VOZ_LABELS = {
+  general:   'DEMO',
+  soprano:   'Soprano',
+  contralto: 'Contralto',
+  tenor:     'Tenor',
+  bajo:      'Bajo',
 }
 
 function useEsMovil() {
@@ -93,12 +93,16 @@ export default function ObraDetalle() {
     )
   }
 
-  const audiosDisponibles = Object.entries(NOMBRES_AUDIO)
-    .filter(([key]) => obra[key])
-    .map(([key, nombre]) => ({ key, nombre, fileId: obra[key] }))
+  const audiosDisponibles = (obra.audios || []).map(a => ({
+    key: `${a.voz}-${a.parte}`,
+    nombre: a.parte > 1 ? `${VOZ_LABELS[a.voz] || a.voz} ${a.parte}` : (VOZ_LABELS[a.voz] || a.voz),
+    voz: a.voz,
+    fileId: a.drive_id,
+  }))
 
   const audioMostrado = audioSeleccionado
-    || audiosDisponibles.find(a => a.key === `drive_audio_${perfil?.voz}`)
+    || audiosDisponibles.find(a => a.voz === perfil?.voz)
+    || audiosDisponibles.find(a => a.voz === 'general')
     || audiosDisponibles[0]
     || null
 
@@ -147,7 +151,7 @@ export default function ObraDetalle() {
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
             {audiosDisponibles.map(audio => {
-              const esVozPropia = audio.key === `drive_audio_${perfil?.voz}`
+              const esVozPropia = audio.voz === perfil?.voz
               const seleccionado = audioMostrado?.key === audio.key
               return (
                 <button key={audio.key} onClick={() => handleSeleccionarAudio(audio)}
@@ -218,7 +222,7 @@ export default function ObraDetalle() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                   {audiosDisponibles.map(audio => {
-                    const esVozPropia = audio.key === `drive_audio_${perfil?.voz}`
+                    const esVozPropia = audio.voz === perfil?.voz
                     const seleccionado = audioMostrado?.key === audio.key
                     return (
                       <button key={audio.key} onClick={() => handleSeleccionarAudio(audio)}
