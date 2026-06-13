@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEventos, formatFecha, formatHora, diasRestantes } from '../../hooks/useEventos'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
+import { getCoroActual } from '../../lib/coro'
 
 const TIPOS = [
   { valor: '',          label: 'Todos' },
@@ -42,12 +43,15 @@ export default function Calendario() {
 
   // Cargar cantantes para mostrar cumpleaños
   useEffect(() => {
-    supabase
-      .from('perfiles')
-      .select('id, nombre, fecha_nacimiento')
-      .eq('estado', 'activo')
-      .not('fecha_nacimiento', 'is', null)
-      .then(({ data }) => setCantantes(data || []))
+    getCoroActual().then(coro => {
+      supabase
+        .from('perfiles')
+        .select('id, nombre, fecha_nacimiento')
+        .eq('estado', 'activo')
+        .eq('coro_id', coro.id)
+        .not('fecha_nacimiento', 'is', null)
+        .then(({ data }) => setCantantes(data || []))
+    })
   }, [])
 
   // Cumpleaños por día del mes actual
