@@ -198,7 +198,7 @@ export default function AsistenciaAdmin() {
 
 // ─── Componente para tomar asistencia ─────────────────────────────────────────
 function TomarAsistencia({ lista, onVolver, onTituloActualizado }) {
-  const { registros, cantantes, cargando, recargar } = useRegistrosLista(lista.id)
+  const { registros, setRegistros, cantantes, cargando, recargar } = useRegistrosLista(lista.id) // ← setRegistros
   const [guardando, setGuardando] = useState({})
   const [busqueda, setBusqueda] = useState('')
   const [vozFiltro, setVozFiltro] = useState('')
@@ -214,7 +214,15 @@ function TomarAsistencia({ lista, onVolver, onTituloActualizado }) {
   async function handleMarcar(perfilId, estado) {
     setGuardando(g => ({ ...g, [perfilId]: true }))
     await marcarAsistencia(lista.id, perfilId, estado)
-    await recargar()
+    // Actualización local — sin recargar, sin reset de scroll
+    setRegistros(prev => {
+      const existe = prev.find(r => r.perfil_id === perfilId)
+      if (existe) {
+        return prev.map(r => r.perfil_id === perfilId ? { ...r, estado } : r)
+      } else {
+        return [...prev, { lista_id: lista.id, perfil_id: perfilId, estado }]
+      }
+    })
     setGuardando(g => ({ ...g, [perfilId]: false }))
   }
 

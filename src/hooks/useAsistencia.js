@@ -66,7 +66,7 @@ export function useRegistrosLista(listaId) {
   }, [listaId])
 
   useEffect(() => { cargar() }, [cargar])
-  return { registros, cantantes, cargando, recargar: cargar }
+  return { registros, setRegistros, cantantes, cargando, recargar: cargar } // ← setRegistros expuesto
 }
 
 export async function crearLista(fecha, descripcion) {
@@ -104,7 +104,6 @@ export function calcularEstadisticas(historial) {
   const meses = {}
   historial.forEach(r => {
     if (!r.listas_asistencia) return
-    // Usar T12:00:00 para evitar desfase de timezone (UTC vs Argentina UTC-3)
     const fecha = new Date(r.listas_asistencia.fecha + 'T12:00:00')
     const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
     if (!meses[key]) meses[key] = { total: 0, presentes: 0 }
