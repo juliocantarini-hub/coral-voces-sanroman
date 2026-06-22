@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { getCoroActual } from '../../lib/coro'
 import { crearAviso, actualizarAviso, publicarAviso, eliminarAviso, useAvisosAdmin, tiempoRelativo, TIPO_AVISO } from '../../hooks/useAvisos'
 
 function useEsMovil() {
@@ -188,8 +189,15 @@ function AvisoForm({ aviso, onGuardar, onCancelar }) {
   const [errorGlobal, setErrorGlobal] = useState('')
 
   useEffect(() => {
-    supabase.from('obras').select('id, titulo').eq('publicada', true).order('titulo').then(({ data }) => setObras(data || []))
-    supabase.from('eventos').select('id, titulo').eq('publicado', true).order('fecha_inicio', { ascending: false }).then(({ data }) => setEventos(data || []))
+    async function cargarOpciones() {
+      const coro = await getCoroActual()
+      if (!coro) return
+      supabase.from('obras').select('id, titulo').eq('coro_id', coro.id).eq('publicada', true).order('titulo')
+        .then(({ data }) => setObras(data || []))
+      supabase.from('eventos').select('id, titulo').eq('coro_id', coro.id).eq('publicado', true).order('fecha_inicio', { ascending: false })
+        .then(({ data }) => setEventos(data || []))
+    }
+    cargarOpciones()
   }, [])
 
   function set(campo) { return e => setForm(f => ({ ...f, [campo]: e.target.value })) }
