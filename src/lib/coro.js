@@ -6,12 +6,16 @@ let coroCache = null
 
 export async function getCoroActual() {
   if (coroCache) return coroCache
-  const { data, error } = await supabase
-    .from('coros')
-    .select('*')
-    .eq('slug', CORO_SLUG)
-    .single()
-  if (error) throw error
-  coroCache = data
-  return data
+  try {
+    const { data, error } = await supabase
+      .from('coros')
+      .select('*')
+      .eq('slug', CORO_SLUG)
+      .single()
+    if (error) return null
+    coroCache = data
+    return data
+  } catch {
+    return null
+  }
 }

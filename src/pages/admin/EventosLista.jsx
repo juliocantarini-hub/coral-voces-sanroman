@@ -1,12 +1,26 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEventosAdmin, publicarEvento, eliminarEvento, formatFecha, formatHora } from '../../hooks/useEventos'
+import { supabase } from '../../lib/supabase'
+import { getCoroActual } from '../../lib/coro'
 
 const TIPO_COLOR = {
   ensayo:    { bg: '#E1F5EE', color: '#04342C' },
   concierto: { bg: '#FAECE7', color: '#712B13' },
   reunion:   { bg: '#E6F1FB', color: '#042C53' },
   extra:     { bg: '#F1EFE8', color: '#5F5E5A' },
+}
+
+async function enviarNotificacionEvento(titulo) {
+  try {
+    const coro = await getCoroActual()
+    if (!coro) return
+    await supabase.functions.invoke('enviar-notificaciones', {
+      body: { coro_id: coro.id, titulo: `Nuevo evento: ${titulo}`, cuerpo: 'Revisá la fecha y confirmá tu asistencia' }
+    })
+  } catch (err) {
+    console.error('Error al enviar notificación:', err)
+  }
 }
 
 function useEsMovil() {
@@ -23,6 +37,9 @@ export default function EventosLista() {
   async function togglePublicar(ev) {
     setProcesando(ev.id)
     await publicarEvento(ev.id, !ev.publicado)
+    if (!ev.publicado) {
+      await enviarNotificacionEvento(ev.titulo)
+    }
     await recargar()
     setProcesando(null)
   }

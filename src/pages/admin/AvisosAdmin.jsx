@@ -8,6 +8,18 @@ function useEsMovil() {
   return window.innerWidth <= 768
 }
 
+async function enviarNotificacionAviso(titulo, cuerpo) {
+  try {
+    const coro = await getCoroActual()
+    if (!coro) return
+    await supabase.functions.invoke('enviar-notificaciones', {
+      body: { coro_id: coro.id, titulo: `Nuevo aviso: ${titulo}`, cuerpo: cuerpo || '' }
+    })
+  } catch (err) {
+    console.error('Error al enviar notificación:', err)
+  }
+}
+
 export function AvisosAdmin() {
   const { avisos, cargando, error, recargar } = useAvisosAdmin()
   const [procesando, setProcesando] = useState(null)
@@ -19,6 +31,9 @@ export function AvisosAdmin() {
   async function togglePublicar(aviso) {
     setProcesando(aviso.id)
     await publicarAviso(aviso.id, !aviso.publicado)
+    if (!aviso.publicado) {
+      await enviarNotificacionAviso(aviso.titulo, aviso.cuerpo)
+    }
     await recargar()
     setProcesando(null)
   }
@@ -143,11 +158,13 @@ export function AvisosAdmin() {
                 </div>
                 <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                   <button onClick={() => setEditando(aviso)}
-                    style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
+                    style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
                     Editar
                   </button>
                   <button onClick={() => setConfirmEliminar(aviso)}
-                    style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>✕</button>
+                    style={{ padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>
+                    ✕
+                  </button>
                 </div>
               </div>
             )
@@ -156,7 +173,7 @@ export function AvisosAdmin() {
       )}
 
       {confirmEliminar && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '24px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: '#FFFFFF', borderRadius: '14px', padding: '28px 24px', maxWidth: '360px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
             <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', margin: '0 0 10px' }}>Eliminar aviso</h3>
             <p style={{ fontSize: '14px', color: '#5F5E5A', lineHeight: '1.6', margin: '0 0 24px' }}>
@@ -221,6 +238,9 @@ function AvisoForm({ aviso, onGuardar, onCancelar }) {
     } else {
       const res = await crearAviso(datos)
       ok = res.ok; error = res.error
+    }
+    if (ok && publicar) {
+      await enviarNotificacionAviso(datos.titulo, datos.cuerpo || '')
     }
     setGuardando(false)
     if (!ok) { setErrorGlobal(error); return }

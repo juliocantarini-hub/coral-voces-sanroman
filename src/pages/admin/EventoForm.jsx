@@ -4,6 +4,18 @@ import { supabase } from '../../lib/supabase'
 import { crearEvento, actualizarEvento, publicarEvento } from '../../hooks/useEventos'
 import { getCoroActual } from '../../lib/coro'
 
+async function enviarNotificacionEvento(titulo) {
+  try {
+    const coro = await getCoroActual()
+    if (!coro) return
+    await supabase.functions.invoke('enviar-notificaciones', {
+      body: { coro_id: coro.id, titulo: `Nuevo evento: ${titulo}`, cuerpo: 'Revisá la fecha y confirmá tu asistencia' }
+    })
+  } catch (err) {
+    console.error('Error al enviar notificación:', err)
+  }
+}
+
 const TIPOS = ['ensayo', 'concierto', 'reunion', 'extra']
 
 const VACIO = {
@@ -120,6 +132,9 @@ export default function EventoForm() {
 
     if (publicar && !esEdicion && data?.id) {
       await publicarEvento(data.id, true)
+      await enviarNotificacionEvento(datos.titulo)
+    } else if (publicar && esEdicion) {
+      await enviarNotificacionEvento(datos.titulo)
     }
 
     setGuardando(false)
