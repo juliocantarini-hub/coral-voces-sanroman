@@ -231,29 +231,39 @@ function DetalleColecta({ colecta, onVolver, onEditado, onEliminado }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {cantantes.map(c => {
-            const estado = getEstado(c.id)
-            return (
-              <div key={c.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '12px 16px', border: '1px solid #E8E6DF', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18' }}>{c.nombre}</div>
-                  <div style={{ fontSize: '11px', color: '#888780', textTransform: 'capitalize' }}>{c.voz || '—'}</div>
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {['pagado','pendiente','exento'].map(est => (
-                    <button key={est} onClick={() => !guardando[c.id] && handleMarcar(c.id, est)}
-                      style={{
-                        padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: '500',
-                        background: estado === est ? ESTADO_BG[est] : '#F1EFE8',
-                        color: estado === est ? ESTADO_COLOR[est] : '#B4B2A9',
-                        opacity: guardando[c.id] ? 0.5 : 1,
-                      }}>
-                      {ESTADO_LABEL[est]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+  const estado = getEstado(c.id)
+  const nota = registros.find(r => r.perfil_id === c.id)?.nota || ''
+  return (
+    <div key={c.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '12px 16px', border: '1px solid #E8E6DF' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18' }}>{c.nombre}</div>
+          <div style={{ fontSize: '11px', color: '#888780', textTransform: 'capitalize' }}>{c.voz || '—'}</div>
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {['pagado','pendiente','exento'].map(est => (
+            <button key={est} onClick={() => !guardando[c.id] && handleMarcar(c.id, est)}
+              style={{
+                padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: '500',
+                background: estado === est ? ESTADO_BG[est] : '#F1EFE8',
+                color: estado === est ? ESTADO_COLOR[est] : '#B4B2A9',
+                opacity: guardando[c.id] ? 0.5 : 1,
+              }}>
+              {ESTADO_LABEL[est]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <NotaCantante
+        colectaId={colecta.id}
+        perfilId={c.id}
+        notaInicial={nota}
+        registros={registros}
+        setRegistros={setRegistros}
+      />
+    </div>
+  )
+})}
         </div>
       )}
     </div>
@@ -378,7 +388,73 @@ function FormNuevaColecta({ onVolver, onGuardar }) {
     </div>
   )
 }
+function NotaCantante({ colectaId, perfilId, notaInicial, registros, setRegistros }) {
+  const [nota, setNota] = useState(notaInicial)
+  const [guardando, setGuardando] = useState(false)
+  const [editando, setEditando] = useState(false)
 
+  async function handleGuardar() {
+    setGuardando(true)
+    const existe = registros.find(r => r.perfil_id === perfilId)
+    if (existe) {
+      await supabase
+        .from('colectas_registros')
+        .update({ nota })
+        .eq('colecta_id', colectaId)
+        .eq('perfil_id', perfilId)
+      setRegistros(prev => prev.map(r => r.perfil_id === perfilId ? { ...r, nota } : r))
+    } else {
+      const { data } = await supabase
+        .from('colectas_registros')
+        .insert({ colecta_id: colectaId, perfil_id: perfilId, estado: 'pendiente', nota })
+        .select()
+        .single()
+      if (data) setRegistros(prev => [...prev, data])
+    }
+    setGuardando(false)
+    setEditando(false)
+  }
+
+  if (!editando && !nota) {
+    return (
+      <button onClick={() => setEditando(true)}
+        style={{ marginTop: '6px', fontSize: '11px', color: '#B4B2A9', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+        + Agregar nota
+      </button>
+    )
+  }
+
+  if (!editando && nota) {
+    return (
+      <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '12px', color: '#888780', fontStyle: 'italic' }}>{nota}</span>
+        <button onClick={() => setEditando(true)}
+          style={{ fontSize: '11px', color: '#B4B2A9', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+          ✏️
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: '8px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+      <input
+        value={nota}
+        onChange={e => setNota(e.target.value)}
+        placeholder="Ej: Monto $44.000 (matrimonio)"
+        style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #D3D1C7', fontSize: '12px', color: '#1A1A18', outline: 'none' }}
+      />
+      <button onClick={handleGuardar} disabled={guardando}
+        style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#0F6E56', color: '#FFFFFF', fontSize: '11px' }}>
+        {guardando ? '...' : 'Ok'}
+      </button>
+      <button onClick={() => { setNota(notaInicial); setEditando(false) }}
+        style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#E8E6DF', color: '#5F5E5A', fontSize: '11px' }}>
+        ✕
+      </button>
+    </div>
+  )
+}
 function Campo({ label, children }) {
   return (
     <div>
