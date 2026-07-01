@@ -12,8 +12,8 @@ const FILTROS = [
   { valor: 'horario',  label: 'Cambio de horario' },
   { valor: 'evento',   label: 'Evento' },
   { valor: 'urgente',  label: 'Urgente' },
+  { valor: 'general',  label: 'General' },
 ]
-
 export default function Avisos() {
   const navigate       = useNavigate()
   const { perfil }     = useAuth()

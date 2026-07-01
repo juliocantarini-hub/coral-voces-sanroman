@@ -7,7 +7,7 @@ import { getCoroActual } from '../../lib/coro'
 const BADGE = {
   estudio:   { bg: '#E1F5EE', color: '#04342C', txt: 'En estudio' },
   activo:    { bg: '#EAF3DE', color: '#27500A', txt: 'Activo' },
-  concierto: { bg: '#FAECE7', color: '#712B13', txt: 'Próximo concierto' },
+  concierto: { bg: '#FAECE7', color: '#712B13', txt: 'Próximo ensayo' },
   archivado: { bg: '#F1EFE8', color: '#888780', txt: 'Archivado' },
 }
 

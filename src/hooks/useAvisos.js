@@ -126,4 +126,5 @@ export const TIPO_AVISO = {
   horario:  { label: 'Cambio de horario', bg: '#FAECE7', color: '#712B13', dot: '#D85A30' },
   evento:   { label: 'Evento', bg: '#E6F1FB', color: '#042C53', dot: '#378ADD' },
   urgente:  { label: 'Urgente', bg: '#FCEBEB', color: '#501313', dot: '#E24B4A' },
+  general:  { label: 'General', bg: '#F1EFE8', color: '#5F5E5A', dot: '#888780' },
 }
