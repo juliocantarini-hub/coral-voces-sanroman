@@ -5,6 +5,7 @@ import { useEventos, formatHora, diasRestantes } from '../hooks/useEventos'
 import { useObras } from '../hooks/useObras'
 import { useAvisos, tiempoRelativo, TIPO_AVISO } from '../hooks/useAvisos'
 import { useArticulos } from '../hooks/useBlog'
+import MisPagos from '../components/MisPagos'
 
 const ORDEN_ESTADO = { concierto: 0, activo: 1, estudio: 2 }
 
@@ -38,6 +39,9 @@ export default function Inicio() {
 
   return (
     <div>
+      {/* MisPagos arriba — solo si hay alerta (después del día 15 con cuota pendiente) */}
+      <MisPagos posicion="arriba" />
+
       {/* Banner de bienvenida */}
       <div style={{
         background: 'linear-gradient(135deg, #0A4A3A 0%, #0F6E56 100%)',
@@ -101,6 +105,11 @@ export default function Inicio() {
             <ItemBlog key={art.id} articulo={art} onClick={() => navigate(`/blog/${art.id}`)} />
           ))}
         </Seccion>
+      </div>
+
+      {/* MisPagos abajo — cuando no hay alerta */}
+      <div style={{ marginTop: '16px' }}>
+        <MisPagos posicion="abajo" />
       </div>
     </div>
   )
