@@ -44,11 +44,11 @@ export default function MisPagos({ posicion }) {
           }} />
           <div style={{ flex: 1 }}>
             <span style={{ fontSize: '13px', color: '#1A1A18' }}>{cuotaPendiente.nombre}</span>
-            {cuotaPendiente.monto && (
-              <span style={{ fontSize: '12px', color: '#888780', marginLeft: '6px' }}>
-                ${Number(cuotaPendiente.monto).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-              </span>
-            )}
+            {(cuotaPendiente.nota || cuotaPendiente.monto) && (
+  <span style={{ fontSize: '12px', color: '#888780', marginLeft: '6px' }}>
+    {cuotaPendiente.nota || '$' + Number(cuotaPendiente.monto).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+  </span>
+)}
           </div>
           <span style={{
             fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px',
@@ -65,11 +65,11 @@ export default function MisPagos({ posicion }) {
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: '#D85A30' }} />
           <div style={{ flex: 1 }}>
             <span style={{ fontSize: '13px', color: '#1A1A18' }}>{c.nombre}</span>
-            {c.monto && (
-              <span style={{ fontSize: '12px', color: '#888780', marginLeft: '6px' }}>
-                ${Number(c.monto).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-              </span>
-            )}
+            {(c.nota || c.monto) && (
+  <span style={{ fontSize: '12px', color: '#888780', marginLeft: '6px' }}>
+    {c.nota || '$' + Number(c.monto).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+  </span>
+)}
           </div>
           <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px', background: '#FAECE7', color: '#D85A30' }}>
             Pendiente

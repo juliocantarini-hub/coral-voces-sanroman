@@ -112,19 +112,22 @@ export function useMisPagos(perfilId) {
       // Cuota del mes corriente
       const cuotaMes = colectas.find(c => c.tipo === 'cuota' && c.mes === mes && c.anio === anio)
       if (cuotaMes) {
-        const reg = cuotaMes.colectas_registros?.find(r => r.perfil_id === perfilId)
-        const estado = reg?.estado || 'pendiente'
-        setCuotaPendiente({ ...cuotaMes, estado })
-      }
+  const reg = cuotaMes.colectas_registros?.find(r => r.perfil_id === perfilId)
+  setCuotaPendiente({ ...cuotaMes, estado: reg?.estado || 'pendiente', nota: reg?.nota || null })
+}
 
       // Colectas pendientes (no cuotas)
       const pendientes = colectas
-        .filter(c => c.tipo === 'colecta')
-        .filter(c => {
-          const reg = c.colectas_registros?.find(r => r.perfil_id === perfilId)
-          return !reg || reg.estado === 'pendiente'
-        })
-      setColectasPendientes(pendientes)
+  .filter(c => c.tipo === 'colecta')
+  .filter(c => {
+    const reg = c.colectas_registros?.find(r => r.perfil_id === perfilId)
+    return !reg || reg.estado === 'pendiente'
+  })
+  .map(c => {
+    const reg = c.colectas_registros?.find(r => r.perfil_id === perfilId)
+    return { ...c, nota: reg?.nota || null }
+  })
+setColectasPendientes(pendientes)
 
       setCargando(false)
     }
