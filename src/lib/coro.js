@@ -5,6 +5,7 @@ const CORO_SLUG = import.meta.env.VITE_CORO_SLUG
 let coroCache = null
 
 export async function getCoroActual() {
+  if (!CORO_SLUG) return null
   if (coroCache) return coroCache
   try {
     const { data, error } = await supabase
