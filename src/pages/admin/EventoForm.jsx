@@ -133,8 +133,6 @@ export default function EventoForm() {
     if (publicar && !esEdicion && data?.id) {
       await publicarEvento(data.id, true)
       await enviarNotificacionEvento(datos.titulo)
-    } else if (publicar && esEdicion) {
-      await enviarNotificacionEvento(datos.titulo)
     }
 
     setGuardando(false)

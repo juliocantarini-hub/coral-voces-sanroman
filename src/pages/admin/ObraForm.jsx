@@ -215,10 +215,8 @@ export default function ObraForm() {
     }
 
    if (publicar && !esEdicion && data?.id) {
-      await publicarObra(data.id, true)
-      await enviarNotificacionObra(datos.titulo)
-    } else if (publicar && esEdicion) {
-      await enviarNotificacionObra(datos.titulo)
+  await publicarObra(data.id, true)
+  await enviarNotificacionObra(datos.titulo)
     }
 
     setGuardando(false)

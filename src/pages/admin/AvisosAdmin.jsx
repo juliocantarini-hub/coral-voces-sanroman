@@ -239,8 +239,8 @@ function AvisoForm({ aviso, onGuardar, onCancelar }) {
       const res = await crearAviso(datos)
       ok = res.ok; error = res.error
     }
-    if (ok && publicar) {
-      await enviarNotificacionAviso(datos.titulo, datos.cuerpo || '')
+    if (ok && publicar && !esEdicion) {
+  await enviarNotificacionAviso(datos.titulo, datos.cuerpo || '')
     }
     setGuardando(false)
     if (!ok) { setErrorGlobal(error); return }
