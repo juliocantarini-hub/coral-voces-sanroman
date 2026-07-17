@@ -32,13 +32,24 @@ export function useHistorialAsistencia(perfilId) {
     if (!perfilId) return
     const cargar = async () => {
       const coro = await getCoroActual()
+      // Primero obtenemos los IDs de listas de este coro
+      const { data: listas } = await supabase
+        .from('listas_asistencia')
+        .select('id')
+        .eq('coro_id', coro.id)
+      if (!listas || listas.length === 0) {
+        setHistorial([])
+        setCargando(false)
+        return
+      }
+      const listaIds = listas.map(l => l.id)
       const { data } = await supabase
         .from('registros_asistencia')
-        .select(`*, listas_asistencia(fecha, descripcion, coro_id)`)
+        .select('*, listas_asistencia(fecha, descripcion, coro_id)')
         .eq('perfil_id', perfilId)
-        .eq('listas_asistencia.coro_id', coro.id)
-        .order('listas_asistencia(fecha)', { ascending: false })
-      setHistorial((data || []).filter(r => r.listas_asistencia?.coro_id === coro.id))
+        .in('lista_id', listaIds)
+        .order('lista_id', { ascending: false })
+      setHistorial(data || [])
       setCargando(false)
     }
     cargar()
@@ -119,4 +130,17 @@ export function calcularEstadisticas(historial) {
       presentes: val.presentes,
       total: val.total,
     }))
+}
+
+export function calcularRacha(historial) {
+  const ordenado = [...historial]
+    .filter(r => r.listas_asistencia?.fecha)
+    .sort((a, b) => new Date(b.listas_asistencia.fecha) - new Date(a.listas_asistencia.fecha))
+
+  let racha = 0
+  for (const r of ordenado) {
+    if (r.estado === 'presente') racha++
+    else break
+  }
+  return racha
 }
