@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getCoroActual } from '../../lib/coro'
+import { usePresenciaDetalle } from '../../hooks/usePresencia'
 
 const ROLES   = ['cantante', 'director', 'admin']
 const VOCES   = ['soprano', 'contralto', 'tenor', 'bajo']
@@ -131,6 +132,8 @@ export default function Usuarios() {
   const [mostrarImprimir, setMostrarImprimir] = useState(false)
   const [camposImprimir, setCamposImprimir]   = useState(['nombre', 'telefono', 'mail'])
   const esMovil = useEsMovil()
+  const activosDetalle = usePresenciaDetalle()
+  const idsOnline = new Set(activosDetalle.map(a => a.id))
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -323,7 +326,12 @@ export default function Usuarios() {
               <div key={u.id} style={{ background: '#FFFFFF', border: '1px solid #E8E6DF', borderRadius: '12px', padding: '14px', opacity: u.estado === 'inactivo' ? 0.5 : 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#1A1A18' }}>{u.nombre}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#1A1A18', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {u.nombre}
+                      {idsOnline.has(u.id) && (
+                        <span title="En línea" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1D9E75', display: 'inline-block', flexShrink: 0 }} />
+                      )}
+                    </div>
                     <div style={{ fontSize: '12px', color: '#888780', marginTop: '2px' }}>{u.mail || '—'}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -373,7 +381,12 @@ export default function Usuarios() {
             return (
               <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 90px 160px', padding: '11px 16px', alignItems: 'center', borderBottom: esUltimo ? 'none' : '1px solid #F1EFE8', opacity: u.estado === 'inactivo' ? 0.5 : 1 }}>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18' }}>{u.nombre}</div>
+                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {u.nombre}
+                    {idsOnline.has(u.id) && (
+                      <span title="En línea" style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#1D9E75', display: 'inline-block', flexShrink: 0 }} />
+                    )}
+                  </div>
                   <div style={{ fontSize: '11px', color: '#888780', marginTop: '1px' }}>{u.mail || '—'}</div>
                 </div>
                 <span style={{ fontSize: '10px', background: vc.bg, color: vc.color, padding: '2px 8px', borderRadius: '10px', fontWeight: '600', textTransform: 'capitalize', display: 'inline-block' }}>{u.voz || '—'}</span>
