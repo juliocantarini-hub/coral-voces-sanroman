@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getCoroActual } from '../../lib/coro'
+import ResumenFinanciero from '../../components/ResumenFinanciero'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
     { label: 'Nueva obra',    sub: 'Subir partitura y audios', ruta: '/admin/obras/nueva',   color: '#0F6E56', bg: '#E1F5EE' },
     { label: 'Nuevo evento',  sub: 'Ensayo o concierto',       ruta: '/admin/eventos/nuevo', color: '#378ADD', bg: '#E6F1FB' },
     { label: 'Nuevo aviso',   sub: 'Comunicado al coro',       ruta: '/admin/avisos',        color: '#D85A30', bg: '#FAECE7' },
-    { label: 'Nuevo texto', sub: 'Publicar en Textos', ruta: '/admin/blog/nuevo', color: '#7C3AED', bg: '#F3EFF8' },,
+    { label: 'Nuevo texto', sub: 'Publicar en Textos', ruta: '/admin/blog/nuevo', color: '#7C3AED', bg: '#F3EFF8' },
   ]
 
   return (
@@ -104,6 +105,11 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div style={{ marginTop: '32px' }}>
+        {/* Resumen financiero del mes — cuota + colectas activas */}
+        <ResumenFinanciero />
       </div>
     </div>
   )
