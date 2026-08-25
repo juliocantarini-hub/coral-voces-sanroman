@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getCoroActual } from '../../lib/coro'
 import { crearAviso, actualizarAviso, publicarAviso, eliminarAviso, useAvisosAdmin, tiempoRelativo, TIPO_AVISO } from '../../hooks/useAvisos'
+import { useEncuesta, useCrearEncuesta } from '../../hooks/useEncuestas'
+import EncuestaWidget from '../../components/EncuestaWidget'
 
 function useEsMovil() {
   return window.innerWidth <= 768
@@ -148,48 +150,48 @@ export function AvisosAdmin() {
             <span style={{ textAlign: 'right' }}>Acciones</span>
           </div>
           {avisos.length === 0 && (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#888780', fontSize: '13px' }}>No hay avisos. Creá el primero.</div>
+            <div style={{ textAlign: 'center', padding: '32px', color: '#888780', fontSize: '13px' }}>No hay avisos. Creá el primero.</div>
           )}
-          {avisos.map((aviso, i) => {
+          {avisos.map(aviso => {
             const tc = TIPO_AVISO[aviso.tipo] || TIPO_AVISO.material
             const lecturas = aviso.avisos_leidos?.length || 0
             return (
-              <div key={aviso.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 90px 110px', padding: '12px 16px', alignItems: 'center', borderBottom: i < avisos.length - 1 ? '1px solid #F1EFE8' : 'none', opacity: procesando === aviso.id ? 0.5 : 1 }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18' }}>{aviso.titulo}</div>
-                  <div style={{ fontSize: '11px', color: '#888780', marginTop: '2px' }}>{tiempoRelativo(aviso.creado_en)}</div>
-                </div>
-                <span style={{ background: tc.bg, color: tc.color, fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '10px', display: 'inline-block' }}>{tc.label}</span>
-                <span style={{ fontSize: '12px', color: '#888780' }}>{lecturas} leídos</span>
-                <div style={{ textAlign: 'center' }}>
+              <div key={aviso.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 90px 110px', padding: '12px 16px', borderBottom: '1px solid #F1EFE8', alignItems: 'center', opacity: procesando === aviso.id ? 0.5 : 1 }}>
+                <span style={{ fontSize: '13px', fontWeight: '500', color: '#1A1A18', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '10px' }}>{aviso.titulo}</span>
+                <span>
+                  <span style={{ background: tc.bg, color: tc.color, fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '10px', display: 'inline-block' }}>{tc.label}</span>
+                </span>
+                <span style={{ fontSize: '12px', color: '#888780' }}>{lecturas}</span>
+                <span style={{ textAlign: 'center' }}>
                   <button onClick={() => togglePublicar(aviso)} disabled={!!procesando}
-                    style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: aviso.publicado ? '#0F6E56' : '#D3D1C7', position: 'relative', transition: 'background 0.2s' }}>
-                    <span style={{ position: 'absolute', top: '3px', left: aviso.publicado ? '22px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#FFFFFF', transition: 'left 0.2s' }} />
+                    style={{ width: '40px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer', background: aviso.publicado ? '#0F6E56' : '#D3D1C7', position: 'relative', transition: 'background 0.2s' }}>
+                    <span style={{ position: 'absolute', top: '2px', left: aviso.publicado ? '20px' : '2px', width: '18px', height: '18px', borderRadius: '50%', background: '#FFFFFF', transition: 'left 0.2s' }} />
                   </button>
-                </div>
-                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                </span>
+                <span style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                   <button onClick={e => compartirWhatsApp(aviso, e)}
-                      title="Compartir por WhatsApp"
-                      style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: '1px solid #B4E0D3', background: '#E7F8F2', cursor: 'pointer', flexShrink: 0 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#128C7E"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.83 14.02c-.24.68-1.42 1.32-1.96 1.4-.5.08-1.14.11-1.84-.12-.42-.13-.97-.31-1.67-.61-2.93-1.27-4.85-4.22-5-4.42-.15-.2-1.19-1.58-1.19-3.02s.75-2.14 1.02-2.44c.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.65.5.24.58.82 2.01.89 2.15.07.15.12.32.02.51-.1.2-.15.32-.29.49-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.75 1.24 1.61 2 1.11.99 2.04 1.3 2.33 1.44.29.15.46.13.63-.08.17-.2.72-.84.91-1.13.19-.29.39-.24.65-.15.27.1 1.68.79 1.97.94.29.15.48.22.55.34.07.13.07.75-.17 1.43z"/></svg>
-                    </button>
+                    title="Compartir por WhatsApp"
+                    style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: '1px solid #B4E0D3', background: '#E7F8F2', cursor: 'pointer', flexShrink: 0 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="#128C7E"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.83 14.02c-.24.68-1.42 1.32-1.96 1.4-.5.08-1.14.11-1.84-.12-.42-.13-.97-.31-1.67-.61-2.93-1.27-4.85-4.22-5-4.42-.15-.2-1.19-1.58-1.19-3.02s.75-2.14 1.02-2.44c.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.65.5.24.58.82 2.01.89 2.15.07.15.12.32.02.51-.1.2-.15.32-.29.49-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.75 1.24 1.61 2 1.11.99 2.04 1.3 2.33 1.44.29.15.46.13.63-.08.17-.2.72-.84.91-1.13.19-.29.39-.24.65-.15.27.1 1.68.79 1.97.94.29.15.48.22.55.34.07.13.07.75-.17 1.43z"/></svg>
+                  </button>
                   <button onClick={() => setEditando(aviso)}
-                    style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
+                    style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #D3D1C7', background: 'none', cursor: 'pointer', color: '#0F6E56', fontWeight: '500' }}>
                     Editar
                   </button>
                   <button onClick={() => setConfirmEliminar(aviso)}
-                    style={{ padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>
+                    style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #F0C5B4', background: 'none', cursor: 'pointer', color: '#A32D2D' }}>
                     ✕
                   </button>
-                </div>
+                </span>
               </div>
             )
           })}
         </div>
       )}
 
+      {/* Modal confirmar eliminación */}
       {confirmEliminar && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
           <div style={{ background: '#FFFFFF', borderRadius: '14px', padding: '28px 24px', maxWidth: '360px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
             <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 'normal', margin: '0 0 10px' }}>Eliminar aviso</h3>
             <p style={{ fontSize: '14px', color: '#5F5E5A', lineHeight: '1.6', margin: '0 0 24px' }}>
@@ -210,21 +212,40 @@ function AvisoForm({ aviso, onGuardar, onCancelar }) {
   const esEdicion = !!aviso
   const [obras, setObras] = useState([])
   const [eventos, setEventos] = useState([])
+  const [coroId, setCoroId] = useState(null)
+  const [obrasSeleccionadas, setObrasSeleccionadas] = useState(
+    aviso?.avisos_obras?.map(ao => ao.obra_id) || []
+  )
+  const [eventosSeleccionados, setEventosSeleccionados] = useState(
+    aviso?.avisos_eventos?.map(ae => ae.evento_id) || []
+  )
   const [form, setForm] = useState({
     titulo: aviso?.titulo || '',
     cuerpo: aviso?.cuerpo || '',
     tipo: aviso?.tipo || 'material',
-    obra_id: aviso?.obra_id || '',
-    evento_id: aviso?.evento_id || '',
   })
   const [errores, setErrores] = useState({})
   const [guardando, setGuardando] = useState(false)
   const [errorGlobal, setErrorGlobal] = useState('')
 
+  const {
+    encuesta: encuestaExistente, resultados, miVoto, votar,
+    cargando: encCargando, recargar: recargarEncuesta
+  } = useEncuesta(esEdicion ? aviso.id : null)
+  const { crearEncuesta, cerrarEncuesta, reabrirEncuesta } = useCrearEncuesta()
+
+  const [agregarEncuesta, setAgregarEncuesta] = useState(false)
+  const [encuestaPregunta, setEncuestaPregunta] = useState('')
+  const [encuestaOpciones, setEncuestaOpciones] = useState(['', ''])
+  const [encuestaMultiple, setEncuestaMultiple] = useState(false)
+
+  const puedeAgregarEncuesta = !esEdicion || (!encCargando && !encuestaExistente)
+
   useEffect(() => {
     async function cargarOpciones() {
       const coro = await getCoroActual()
       if (!coro) return
+      setCoroId(coro.id)
       supabase.from('obras').select('id, titulo').eq('coro_id', coro.id).eq('publicada', true).order('titulo')
         .then(({ data }) => setObras(data || []))
       supabase.from('eventos').select('id, titulo').eq('coro_id', coro.id).eq('publicado', true).order('fecha_inicio', { ascending: false })
@@ -235,31 +256,88 @@ function AvisoForm({ aviso, onGuardar, onCancelar }) {
 
   function set(campo) { return e => setForm(f => ({ ...f, [campo]: e.target.value })) }
 
+  const [obrasAbierto, setObrasAbierto] = useState(false)
+  const [eventosAbierto, setEventosAbierto] = useState(false)
+  const obrasRef = useRef(null)
+  const eventosRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (obrasRef.current && !obrasRef.current.contains(e.target)) setObrasAbierto(false)
+      if (eventosRef.current && !eventosRef.current.contains(e.target)) setEventosAbierto(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function toggleObra(id) {
+    setObrasSeleccionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+  function toggleEvento(id) {
+    setEventosSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  function actualizarOpcion(i, valor) {
+    setEncuestaOpciones(prev => prev.map((o, idx) => idx === i ? valor : o))
+  }
+  function agregarOpcion() { setEncuestaOpciones(prev => [...prev, '']) }
+  function quitarOpcion(i) { setEncuestaOpciones(prev => prev.filter((_, idx) => idx !== i)) }
+
+  async function handleCerrarEncuesta() { await cerrarEncuesta(encuestaExistente.id); recargarEncuesta() }
+  async function handleReabrirEncuesta() { await reabrirEncuesta(encuestaExistente.id); recargarEncuesta() }
+
   async function guardar(publicar) {
     setErrorGlobal('')
     if (!form.titulo.trim()) { setErrores({ titulo: 'El título es obligatorio.' }); return }
+
+    let opcionesValidas = []
+    if (agregarEncuesta) {
+      if (!encuestaPregunta.trim()) { setErrorGlobal('La pregunta de la encuesta es obligatoria.'); return }
+      opcionesValidas = encuestaOpciones.map(o => o.trim()).filter(Boolean)
+      if (opcionesValidas.length < 2) { setErrorGlobal('La encuesta necesita al menos 2 opciones.'); return }
+    }
+
     setGuardando(true)
     const datos = {
       titulo: form.titulo.trim(),
       cuerpo: form.cuerpo.trim() || null,
       tipo: form.tipo,
-      obra_id: form.obra_id || null,
-      evento_id: form.evento_id || null,
       publicado: publicar,
     }
-    let ok, error
+
+    let ok, error, avisoGuardado
     if (esEdicion) {
-      const res = await actualizarAviso(aviso.id, datos)
-      ok = res.ok; error = res.error
+      const res = await actualizarAviso(aviso.id, datos, obrasSeleccionadas, eventosSeleccionados)
+      ok = res.ok; error = res.error; avisoGuardado = res.data
     } else {
-      const res = await crearAviso(datos)
-      ok = res.ok; error = res.error
+      const res = await crearAviso(datos, obrasSeleccionadas, eventosSeleccionados)
+      ok = res.ok; error = res.error; avisoGuardado = res.data
     }
+
+    if (!ok) { setGuardando(false); setErrorGlobal(error); return }
+
+    if (agregarEncuesta && avisoGuardado?.id && coroId) {
+      try {
+        await crearEncuesta({
+          avisoId: avisoGuardado.id,
+          coroId,
+          pregunta: encuestaPregunta.trim(),
+          permiteMultiple: encuestaMultiple,
+          opciones: opcionesValidas,
+        })
+      } catch (err) {
+        console.error('Error al crear la encuesta:', err)
+        setGuardando(false)
+        setErrorGlobal('El aviso se guardó, pero hubo un problema al crear la encuesta.')
+        return
+      }
+    }
+
     if (ok && publicar && !esEdicion) {
-  await enviarNotificacionAviso(datos.titulo, datos.cuerpo || '')
+      await enviarNotificacionAviso(datos.titulo, datos.cuerpo || '')
     }
+
     setGuardando(false)
-    if (!ok) { setErrorGlobal(error); return }
     onGuardar()
   }
 
@@ -297,20 +375,114 @@ function AvisoForm({ aviso, onGuardar, onCancelar }) {
           style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical', lineHeight: '1.6' }} />
       </Campo>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <Campo label="Obra relacionada (opcional)">
-          <select value={form.obra_id} onChange={set('obra_id')} style={inputStyle}>
-            <option value="">Ninguna</option>
-            {obras.map(o => <option key={o.id} value={o.id}>{o.titulo}</option>)}
-          </select>
+      {/* Obras relacionadas — dropdown con checkboxes */}
+      {obras.length > 0 && (
+        <Campo label="Obras relacionadas (opcional)">
+          <div ref={obrasRef} style={{ position: 'relative' }}>
+            <button type="button" onClick={() => setObrasAbierto(v => !v)}
+              style={{ width: '100%', height: '38px', border: '1px solid #D3D1C7', borderRadius: obrasAbierto ? '8px 8px 0 0' : '8px', padding: '0 12px', fontSize: '13px', color: obrasSeleccionadas.length ? '#1A1A18' : '#B4B2A9', background: '#FFFFFF', outline: 'none', boxSizing: 'border-box', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{obrasSeleccionadas.length ? `${obrasSeleccionadas.length} obra${obrasSeleccionadas.length !== 1 ? 's' : ''} seleccionada${obrasSeleccionadas.length !== 1 ? 's' : ''}` : 'Ninguna'}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#888780" style={{ transform: obrasAbierto ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            {obrasAbierto && (
+              <div style={{ border: '1px solid #D3D1C7', borderTop: 'none', borderRadius: '0 0 8px 8px', background: '#FFFFFF', maxHeight: '180px', overflowY: 'auto', position: 'absolute', width: '100%', zIndex: 10 }}>
+                {obras.map(o => {
+                  const sel = obrasSeleccionadas.includes(o.id)
+                  return (
+                    <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 12px', background: sel ? '#E1F5EE' : '#FFFFFF', borderBottom: '1px solid #F1EFE8' }}>
+                      <input type="checkbox" checked={sel} onChange={() => toggleObra(o.id)} style={{ accentColor: '#0F6E56', width: '14px', height: '14px', flexShrink: 0 }} />
+                      <span style={{ fontSize: '13px', color: '#1A1A18', fontWeight: sel ? '500' : '400' }}>{o.titulo}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </Campo>
-        <Campo label="Evento relacionado (opcional)">
-          <select value={form.evento_id} onChange={set('evento_id')} style={inputStyle}>
-            <option value="">Ninguno</option>
-            {eventos.map(e => <option key={e.id} value={e.id}>{e.titulo}</option>)}
-          </select>
+      )}
+
+      {/* Eventos relacionados — dropdown con checkboxes */}
+      {eventos.length > 0 && (
+        <Campo label="Eventos relacionados (opcional)">
+          <div ref={eventosRef} style={{ position: 'relative' }}>
+            <button type="button" onClick={() => setEventosAbierto(v => !v)}
+              style={{ width: '100%', height: '38px', border: '1px solid #D3D1C7', borderRadius: eventosAbierto ? '8px 8px 0 0' : '8px', padding: '0 12px', fontSize: '13px', color: eventosSeleccionados.length ? '#1A1A18' : '#B4B2A9', background: '#FFFFFF', outline: 'none', boxSizing: 'border-box', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{eventosSeleccionados.length ? `${eventosSeleccionados.length} evento${eventosSeleccionados.length !== 1 ? 's' : ''} seleccionado${eventosSeleccionados.length !== 1 ? 's' : ''}` : 'Ninguno'}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#888780" style={{ transform: eventosAbierto ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            {eventosAbierto && (
+              <div style={{ border: '1px solid #D3D1C7', borderTop: 'none', borderRadius: '0 0 8px 8px', background: '#FFFFFF', maxHeight: '180px', overflowY: 'auto', position: 'absolute', width: '100%', zIndex: 10 }}>
+                {eventos.map(e => {
+                  const sel = eventosSeleccionados.includes(e.id)
+                  return (
+                    <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 12px', background: sel ? '#E1F5EE' : '#FFFFFF', borderBottom: '1px solid #F1EFE8' }}>
+                      <input type="checkbox" checked={sel} onChange={() => toggleEvento(e.id)} style={{ accentColor: '#0F6E56', width: '14px', height: '14px', flexShrink: 0 }} />
+                      <span style={{ fontSize: '13px', color: '#1A1A18', fontWeight: sel ? '500' : '400' }}>{e.titulo}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </Campo>
-      </div>
+      )}
+
+      {/* Encuesta existente */}
+      {esEdicion && encuestaExistente && (
+        <div style={{ marginTop: '4px', marginBottom: '14px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#5F5E5A', marginBottom: '5px' }}>
+            Encuesta de este aviso
+          </label>
+          <EncuestaWidget
+            encuesta={encuestaExistente}
+            resultados={resultados}
+            miVoto={miVoto}
+            votar={votar}
+            esAdmin
+            onCerrar={handleCerrarEncuesta}
+            onReabrir={handleReabrirEncuesta}
+          />
+        </div>
+      )}
+
+      {/* Agregar encuesta */}
+      {puedeAgregarEncuesta && (
+        <div style={{ marginTop: '4px', marginBottom: '14px', border: '1px solid #E8E6DF', borderRadius: '10px', padding: '14px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#1A1A18' }}>
+            <input type="checkbox" checked={agregarEncuesta} onChange={e => setAgregarEncuesta(e.target.checked)} />
+            Agregar una encuesta a este aviso
+          </label>
+          {agregarEncuesta && (
+            <div style={{ marginTop: '12px' }}>
+              <Campo label="Pregunta">
+                <input value={encuestaPregunta} onChange={e => setEncuestaPregunta(e.target.value)}
+                  placeholder="Ej: ¿Qué día prefieren para el ensayo extra?" style={inputStyle} />
+              </Campo>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#5F5E5A', marginBottom: '5px' }}>Opciones</label>
+              {encuestaOpciones.map((op, i) => (
+                <div key={i} style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                  <input value={op} onChange={e => actualizarOpcion(i, e.target.value)}
+                    placeholder={`Opción ${i + 1}`} style={inputStyle} />
+                  {encuestaOpciones.length > 2 && (
+                    <button type="button" onClick={() => quitarOpcion(i)}
+                      style={{ width: '38px', height: '38px', border: '1px solid #F0C5B4', borderRadius: '8px', background: 'none', color: '#A32D2D', cursor: 'pointer', flexShrink: 0 }}>×</button>
+                  )}
+                </div>
+              ))}
+              {encuestaOpciones.length < 8 && (
+                <button type="button" onClick={agregarOpcion}
+                  style={{ fontSize: '12px', color: '#0F6E56', background: '#E1F5EE', border: 'none', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontWeight: '500', marginBottom: '10px' }}>
+                  + Agregar opción
+                </button>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: '#5F5E5A', marginTop: '4px' }}>
+                <input type="checkbox" checked={encuestaMultiple} onChange={e => setEncuestaMultiple(e.target.checked)} />
+                Permitir elegir más de una opción
+              </label>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
         <button onClick={() => guardar(false)} disabled={guardando}
