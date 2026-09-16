@@ -5,6 +5,8 @@ import {
   useAvisos, marcarLeido, marcarTodosLeidos,
   tiempoRelativo, TIPO_AVISO
 } from '../../hooks/useAvisos'
+import { useEncuesta } from '../../hooks/useEncuestas'
+import EncuestaWidget from '../../components/EncuestaWidget'
 
 const FILTROS = [
   { valor: '',         label: 'Todos' },
@@ -12,6 +14,7 @@ const FILTROS = [
   { valor: 'horario',  label: 'Cambio de horario' },
   { valor: 'evento',   label: 'Evento' },
   { valor: 'urgente',  label: 'Urgente' },
+  { valor: 'encuesta', label: 'Encuesta' },
   { valor: 'general',  label: 'General' },
 ]
 
@@ -43,14 +46,8 @@ export default function Avisos() {
     recargar()
   }
 
-  function irADestino(aviso) {
-    if (aviso.obra_id) navigate(`/repertorio/${aviso.obra_id}`)
-    else if (aviso.evento_id) navigate(`/calendario/${aviso.evento_id}`)
-  }
-
   return (
     <div>
-      {/* Cabecera */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: 'normal', color: '#1A1A18', margin: '0 0 2px' }}>
@@ -71,7 +68,6 @@ export default function Avisos() {
         )}
       </div>
 
-      {/* Filtros */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
         {FILTROS.map(f => (
           <button key={f.valor} onClick={() => setTipo(f.valor)} style={{
@@ -111,86 +107,107 @@ export default function Avisos() {
         </div>
       )}
 
-      {/* Lista */}
       {!cargando && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {avisos.map(aviso => {
-            const tc = TIPO_AVISO[aviso.tipo] || TIPO_AVISO.material
-            const tieneDestino = aviso.obra_id || aviso.evento_id
-            const estaAbierto = avisoAbierto?.id === aviso.id
+          {avisos.map(aviso => (
+            <AvisoCard
+              key={aviso.id}
+              aviso={aviso}
+              estaAbierto={avisoAbierto?.id === aviso.id}
+              onAbrir={() => handleAbrir(aviso)}
+              navigate={navigate}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
-            return (
-              <div key={aviso.id} style={{
-                background: '#FFFFFF',
-                border: `1px solid ${aviso.leido ? '#E8E6DF' : '#B4D8CE'}`,
-                borderLeft: `3px solid ${aviso.leido ? '#E8E6DF' : tc.dot}`,
-                borderRadius: '10px',
-                overflow: 'hidden',
-                opacity: aviso.leido && !estaAbierto ? 0.75 : 1,
-                transition: 'border-color 0.12s',
-              }}>
-                {/* Cabecera del aviso — siempre visible */}
-                <div
-                  onClick={() => handleAbrir(aviso)}
-                  style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '700', color: tc.color, background: tc.bg, padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                        {tc.label}
-                      </span>
-                      {!aviso.leido && (
-                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: tc.dot, display: 'inline-block', flexShrink: 0 }} />
-                      )}
-                      <span style={{ fontSize: '11px', color: '#B4B2A9', marginLeft: 'auto' }}>
-                        {tiempoRelativo(aviso.creado_en)}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '14px', fontWeight: aviso.leido ? '400' : '500', color: '#1A1A18' }}>
-                      {aviso.titulo}
-                    </div>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#B4B2A9"
-                    style={{ transform: estaAbierto ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
-                    <path d="M7 10l5 5 5-5z"/>
-                  </svg>
-                </div>
+function AvisoCard({ aviso, estaAbierto, onAbrir, navigate }) {
+  const tc = TIPO_AVISO[aviso.tipo] || TIPO_AVISO.material
+  const { encuesta, resultados, miVoto, votar } = useEncuesta(estaAbierto ? aviso.id : null)
 
-                {/* Contenido expandido */}
-                {estaAbierto && (
-                  <div style={{ padding: '0 16px 14px', borderTop: '1px solid #F1EFE8' }}>
-                    {aviso.cuerpo && (
-                      <p style={{ fontSize: '13px', color: '#5F5E5A', margin: '12px 0 10px', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
-                        {aviso.cuerpo}
-                      </p>
-                    )}
+  const obras = aviso.avisos_obras?.map(ao => ao.obras).filter(Boolean) || []
+  const eventos = aviso.avisos_eventos?.map(ae => ae.eventos).filter(Boolean) || []
 
-                    <button onClick={e => compartirWhatsApp(aviso, e)}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#128C7E', background: '#E7F8F2', border: 'none', padding: '5px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', marginBottom: '10px' }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="#128C7E"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.83 14.02c-.24.68-1.42 1.32-1.96 1.4-.5.08-1.14.11-1.84-.12-.42-.13-.97-.31-1.67-.61-2.93-1.27-4.85-4.22-5-4.42-.15-.2-1.19-1.58-1.19-3.02s.75-2.14 1.02-2.44c.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.65.5.24.58.82 2.01.89 2.15.07.15.12.32.02.51-.1.2-.15.32-.29.49-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.75 1.24 1.61 2 1.11.99 2.04 1.3 2.33 1.44.29.15.46.13.63-.08.17-.2.72-.84.91-1.13.19-.29.39-.24.65-.15.27.1 1.68.79 1.97.94.29.15.48.22.55.34.07.13.07.75-.17 1.43z"/></svg>
-                      Compartir por WhatsApp
-                    </button>
+  return (
+    <div style={{
+      background: '#FFFFFF',
+      border: `1px solid ${aviso.leido ? '#E8E6DF' : '#B4D8CE'}`,
+      borderLeft: `3px solid ${aviso.leido ? '#E8E6DF' : tc.dot}`,
+      borderRadius: '10px',
+      overflow: 'hidden',
+      opacity: aviso.leido && !estaAbierto ? 0.75 : 1,
+      transition: 'border-color 0.12s',
+    }}>
+      <div onClick={onAbrir} style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: tc.color, background: tc.bg, padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+              {tc.label}
+            </span>
+            {!aviso.leido && (
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: tc.dot, display: 'inline-block', flexShrink: 0 }} />
+            )}
+            <span style={{ fontSize: '11px', color: '#B4B2A9', marginLeft: 'auto' }}>
+              {tiempoRelativo(aviso.creado_en)}
+            </span>
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: aviso.leido ? '400' : '500', color: '#1A1A18' }}>
+            {aviso.titulo}
+          </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#B4B2A9"
+          style={{ transform: estaAbierto ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
+          <path d="M7 10l5 5 5-5z"/>
+        </svg>
+      </div>
 
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      {aviso.obras && (
-                        <span style={{ fontSize: '11px', color: '#888780' }}>Obra: {aviso.obras.titulo}</span>
-                      )}
-                      {aviso.eventos && (
-                        <span style={{ fontSize: '11px', color: '#888780' }}>Evento: {aviso.eventos.titulo}</span>
-                      )}
-                      {tieneDestino && (
-                        <button
-                          onClick={e => { e.stopPropagation(); irADestino(aviso) }}
-                          style={{ fontSize: '12px', color: '#0F6E56', background: '#E1F5EE', border: 'none', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
-                          {aviso.obra_id ? 'Abrir obra →' : 'Ver evento →'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+      {estaAbierto && (
+        <div style={{ padding: '0 16px 14px', borderTop: '1px solid #F1EFE8' }}>
+          {aviso.cuerpo && (
+            <p style={{ fontSize: '13px', color: '#5F5E5A', margin: '12px 0 10px', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
+              {aviso.cuerpo}
+            </p>
+          )}
+
+          <button onClick={e => compartirWhatsApp(aviso, e)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#128C7E', background: '#E7F8F2', border: 'none', padding: '5px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', marginBottom: '10px' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#128C7E"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.83 14.02c-.24.68-1.42 1.32-1.96 1.4-.5.08-1.14.11-1.84-.12-.42-.13-.97-.31-1.67-.61-2.93-1.27-4.85-4.22-5-4.42-.15-.2-1.19-1.58-1.19-3.02s.75-2.14 1.02-2.44c.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.65.5.24.58.82 2.01.89 2.15.07.15.12.32.02.51-.1.2-.15.32-.29.49-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.75 1.24 1.61 2 1.11.99 2.04 1.3 2.33 1.44.29.15.46.13.63-.08.17-.2.72-.84.91-1.13.19-.29.39-.24.65-.15.27.1 1.68.79 1.97.94.29.15.48.22.55.34.07.13.07.75-.17 1.43z"/></svg>
+            Compartir por WhatsApp
+          </button>
+
+          {obras.length > 0 && (
+            <div style={{ marginBottom: '8px' }}>
+              {obras.map(o => (
+                <button key={o.id} onClick={e => { e.stopPropagation(); navigate(`/repertorio/${o.id}`) }}
+                  style={{ fontSize: '12px', color: '#0F6E56', background: '#E1F5EE', border: 'none', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', marginRight: '6px', marginBottom: '4px' }}>
+                  {o.titulo} →
+                </button>
+              ))}
+            </div>
+          )}
+
+          {eventos.length > 0 && (
+            <div style={{ marginBottom: '8px' }}>
+              {eventos.map(e => (
+                <button key={e.id} onClick={ev => { ev.stopPropagation(); navigate(`/calendario/${e.id}`) }}
+                  style={{ fontSize: '12px', color: '#378ADD', background: '#E6F1FB', border: 'none', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', marginRight: '6px', marginBottom: '4px' }}>
+                  {e.titulo} →
+                </button>
+              ))}
+            </div>
+          )}
+
+          {encuesta && (
+            <EncuestaWidget
+              encuesta={encuesta}
+              resultados={resultados}
+              miVoto={miVoto}
+              votar={votar}
+            />
+          )}
         </div>
       )}
     </div>
