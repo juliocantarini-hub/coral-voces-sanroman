@@ -130,6 +130,8 @@ export async function publicarAviso(id, publicado) {
 }
 
 export async function eliminarAviso(id) {
+  await supabase.from('avisos_obras').delete().eq('aviso_id', id)
+  await supabase.from('avisos_eventos').delete().eq('aviso_id', id)
   const { error } = await supabase.from('avisos').delete().eq('id', id)
   return { ok: !error, error: error?.message }
 }
