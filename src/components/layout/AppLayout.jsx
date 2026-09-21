@@ -3,6 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import { supabase } from '../../lib/supabase'
 import { usePushSubscription } from '../../hooks/usePushSubscription'
+import { useAuth } from '../../hooks/useAuth'
+import { useRegistrarAcceso } from '../../hooks/useMensajeSorpresa'
+import { useRegistrarActividad } from '../../hooks/useActividad'
+import { useMensajeSeccion } from '../../hooks/useMensajeSeccion'
+import MensajeSorpresa from '../MensajeSorpresa'
 
 function useEsMovil() {
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768)
@@ -30,6 +35,7 @@ export default function AppLayout({ children }) {
   )
   const [zoom, setZoom] = useState(getZoom)
   const [user, setUser] = useState(null)
+  const { perfil } = useAuth()
 
   useEffect(() => {
     const fn = () => setZoom(getZoom())
@@ -48,6 +54,10 @@ export default function AppLayout({ children }) {
   }, [])
 
   usePushSubscription(user)
+  useRegistrarAcceso(perfil)
+  useRegistrarActividad(perfil)
+  // Debe ir después de useRegistrarAcceso: ese congela el cálculo de ausencia antes de que lo use
+  const { mensaje: mensajeSeccion, cerrar: cerrarMensajeSeccion } = useMensajeSeccion(perfil)
 
   function toggleAdmin(valor) {
     setSeccionAdmin(valor)
@@ -90,6 +100,8 @@ export default function AppLayout({ children }) {
           </svg>
         </button>
       )}
+
+      <MensajeSorpresa key={mensajeSeccion?.tipo} mensaje={mensajeSeccion} onCerrar={cerrarMensajeSeccion} />
 
       <main style={{ marginLeft: esMovil ? 0 : '210px', padding: esMovil ? '60px 16px 24px' : '28px 32px', flex: 1, minHeight: '100vh', width: esMovil ? '100%' : 'auto', zoom: zoom }}>
         {children}
