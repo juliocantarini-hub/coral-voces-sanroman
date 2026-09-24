@@ -136,6 +136,23 @@ export async function eliminarAviso(id) {
   return { ok: !error, error: error?.message }
 }
 
+// Borra los avisos anteriores a la fecha de corte (para "limpiar" avisos viejos
+// y dejar solo los últimos N días, ej. el último mes), junto con sus relaciones.
+export async function eliminarAvisosAntiguos(coroId, fechaCorteIso) {
+  const { data: viejos, error: errSel } = await supabase
+    .from('avisos')
+    .select('id')
+    .eq('coro_id', coroId)
+    .lt('creado_en', fechaCorteIso)
+  if (errSel) return { ok: false, count: 0, error: errSel.message }
+  const ids = (viejos || []).map(a => a.id)
+  if (!ids.length) return { ok: true, count: 0 }
+  await supabase.from('avisos_obras').delete().in('aviso_id', ids)
+  await supabase.from('avisos_eventos').delete().in('aviso_id', ids)
+  const { error } = await supabase.from('avisos').delete().in('id', ids)
+  return { ok: !error, count: ids.length, error: error?.message }
+}
+
 export function tiempoRelativo(iso) {
   if (!iso) return ''
   const diff = Date.now() - new Date(iso).getTime()
