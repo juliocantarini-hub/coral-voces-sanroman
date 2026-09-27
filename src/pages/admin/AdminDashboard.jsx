@@ -6,6 +6,7 @@ import MensajeSorpresa from '../../components/MensajeSorpresa'
 import { useMensajeSorpresa } from '../../hooks/useMensajeSorpresa'
 import { supabase } from '../../lib/supabase'
 import { getCoroActual } from '../../lib/coro'
+import EncuestaDashboard from '../../components/EncuestaDashboard'
 import ResumenFinanciero from '../../components/ResumenFinanciero'
 
 export default function AdminDashboard() {
@@ -117,6 +118,9 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ marginTop: '32px' }}>
+        {/* Encuesta activa — solo aparece si hay una encuesta abierta */}
+        <EncuestaDashboard esAdmin={true} />
+
         {/* Resumen financiero del mes — cuota + colectas activas */}
         <ResumenFinanciero />
       </div>
