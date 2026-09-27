@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
+import { useEventos } from '../../hooks/useEventos'
+import MensajeSorpresa from '../../components/MensajeSorpresa'
+import { useMensajeSorpresa } from '../../hooks/useMensajeSorpresa'
 import { supabase } from '../../lib/supabase'
 import { getCoroActual } from '../../lib/coro'
 import ResumenFinanciero from '../../components/ResumenFinanciero'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const { perfil } = useAuth()
+  const { eventos, cargando: cargandoEventos } = useEventos({ soloFuturos: true })
+  const { mensaje: mensajeSorpresa, cerrar: cerrarSorpresa } = useMensajeSorpresa(perfil, eventos, cargandoEventos)
   const [stats, setStats]       = useState(null)
   const [cargando, setCargando] = useState(true)
 
@@ -48,6 +55,8 @@ export default function AdminDashboard() {
       <p style={{ fontSize: '13px', color: '#888780', margin: '0 0 24px' }}>
         Resumen del estado del coro
       </p>
+
+      <MensajeSorpresa mensaje={mensajeSorpresa} onCerrar={cerrarSorpresa} />
 
       {cargando ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
