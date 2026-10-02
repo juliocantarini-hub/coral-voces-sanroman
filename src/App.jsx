@@ -13,6 +13,7 @@ import ResetContrasena     from './pages/auth/ResetContrasena'
 // Cantante
 import Inicio          from './pages/Inicio'
 import Entrenamiento   from './pages/entrenamiento/Entrenamiento'
+import PartiturasAdmin from './pages/admin/PartiturasAdmin'
 import Repertorio      from './pages/repertorio/Repertorio'
 import ObraDetalle     from './pages/repertorio/ObraDetalle'
 import Calendario      from './pages/calendario/Calendario'
@@ -97,6 +98,8 @@ export default function App() {
             <Route path="/admin/blog/nuevo" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ArticuloForm /></ConLayout></RutaProtegida>} />
             <Route path="/admin/blog/:id" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ArticuloForm /></ConLayout></RutaProtegida>} />
             <Route path="/admin/estudio" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EstudioAdmin /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/entrenamiento" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><PartiturasAdmin /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/partituras" element={<Navigate to="/admin/entrenamiento" replace />} />
             <Route path="/admin/estadistica" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EstadisticaAdmin /></ConLayout></RutaProtegida>} />
 
             <Route path="/admin/asistente" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AsistenteRepertorio /></ConLayout></RutaProtegida>} />

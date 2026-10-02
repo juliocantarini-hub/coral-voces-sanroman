@@ -138,3 +138,89 @@ export function useEjerciciosHoy() {
 
   return { cantidad, cargando }
 }
+
+// ─── Admin: catálogo completo de ejercicios (activos e inactivos) ───────────
+export function useEjerciciosEntrenamientoAdmin() {
+  const [ejercicios, setEjercicios] = useState([])
+  const [cargando, setCargando]     = useState(true)
+  const [error, setError]           = useState(null)
+
+  const cargar = useCallback(async () => {
+    setCargando(true)
+    try {
+      const { data, error: err } = await supabase
+        .from('ejercicios_entrenamiento')
+        .select('*')
+        .order('categoria', { ascending: true })
+        .order('orden', { ascending: true })
+
+      if (err) { setError(err.message); setCargando(false); return }
+      setEjercicios(data || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCargando(false)
+    }
+  }, [])
+
+  useEffect(() => { cargar() }, [cargar])
+
+  return { ejercicios, cargando, error, recargar: cargar }
+}
+
+// ─── Admin: CRUD de ejercicios ────────────────────────────────────────────
+export async function crearEjercicioEntrenamiento({ categoria, nombre, instruccionTexto, patronTone, duracionEstimadaSeg, orden }) {
+  const { data, error } = await supabase
+    .from('ejercicios_entrenamiento')
+    .insert([{
+      categoria,
+      nombre,
+      instruccion_texto: instruccionTexto?.trim() || null,
+      patron_tone: patronTone,
+      duracion_estimada_seg: duracionEstimadaSeg || null,
+      orden: orden ?? 0,
+      activo: true,
+    }])
+    .select()
+    .single()
+  return { ok: !error, data, error: error?.message }
+}
+
+export async function activarEjercicioEntrenamiento(id, activo) {
+  const { error } = await supabase
+    .from('ejercicios_entrenamiento')
+    .update({ activo })
+    .eq('id', id)
+  return { ok: !error, error: error?.message }
+}
+
+export async function eliminarEjercicioEntrenamiento(id) {
+  // Si algún cantante ya completó este ejercicio, queda un registro en
+  // actividad_entrenamiento que referencia su id (para la racha y el
+  // contador de "hoy"). Esa referencia bloquea el borrado directo, así
+  // que primero borramos esa actividad y recién después el ejercicio.
+  const { error: errorActividad } = await supabase
+    .from('actividad_entrenamiento')
+    .delete()
+    .eq('ejercicio_id', id)
+  if (errorActividad) return { ok: false, error: errorActividad.message }
+
+  const { error } = await supabase
+    .from('ejercicios_entrenamiento')
+    .delete()
+    .eq('id', id)
+  return { ok: !error, error: error?.message }
+}
+
+export async function actualizarEjercicioEntrenamiento(id, { categoria, nombre, instruccionTexto, patronTone }) {
+  const { error } = await supabase
+    .from('ejercicios_entrenamiento')
+    .update({
+      categoria,
+      nombre,
+      instruccion_texto: instruccionTexto?.trim() || null,
+      patron_tone: patronTone,
+    })
+    .eq('id', id)
+  return { ok: !error, error: error?.message }
+}
