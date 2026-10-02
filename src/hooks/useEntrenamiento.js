@@ -13,10 +13,12 @@ export function useEjerciciosEntrenamiento() {
     setCargando(true)
     setError(null)
     try {
+      const coro = await getCoroActual()
       const { data, error: err } = await supabase
         .from('ejercicios_entrenamiento')
         .select('*')
         .eq('activo', true)
+        .eq('coro_id', coro?.id)
         .order('categoria', { ascending: true })
         .order('orden', { ascending: true })
 
@@ -148,9 +150,11 @@ export function useEjerciciosEntrenamientoAdmin() {
   const cargar = useCallback(async () => {
     setCargando(true)
     try {
+      const coro = await getCoroActual()
       const { data, error: err } = await supabase
         .from('ejercicios_entrenamiento')
         .select('*')
+        .eq('coro_id', coro?.id)
         .order('categoria', { ascending: true })
         .order('orden', { ascending: true })
 
