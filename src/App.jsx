@@ -39,7 +39,6 @@ import { ArticulosAdmin, ArticuloForm } from './pages/admin/ArticulosAdmin'
 import EstudioAdmin    from './pages/admin/EstudioAdmin'
 import InformesAfinacionAdmin from './pages/admin/InformesAfinacionAdmin'
 import EstadisticaAdmin from './pages/admin/EstadisticaAdmin'
-import AsistenteRepertorio from './pages/admin/AsistenteRepertorio'
 import PagosAdmin from './pages/admin/PagosAdmin'
 
 function RutaPublica({ children }) {
@@ -104,7 +103,6 @@ export default function App() {
             <Route path="/admin/informes-afinacion" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><InformesAfinacionAdmin /></ConLayout></RutaProtegida>} />
             <Route path="/admin/estadistica" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EstadisticaAdmin /></ConLayout></RutaProtegida>} />
 
-            <Route path="/admin/asistente" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AsistenteRepertorio /></ConLayout></RutaProtegida>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
