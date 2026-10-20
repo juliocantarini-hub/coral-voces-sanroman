@@ -117,7 +117,13 @@ export default function ObraForm() {
           drive_id: a.drive_id || '',
           etiqueta: a.etiqueta || '',
         }))
-      setAudios(cargados)
+      // Completar con voces base que no están en la base
+      const vocesEnBase = new Set(cargados.map(a => a.voz))
+      const faltantes = AUDIOS_INICIALES.filter(a => !vocesEnBase.has(a.voz))
+      setAudios([...cargados, ...faltantes].sort((a, b) => {
+        const orden = { general: 0, soprano: 1, mezzo: 2, contralto: 3, tenor: 4, baritono: 5, bajo: 6 }
+        return (orden[a.voz] ?? 99) - (orden[b.voz] ?? 99)
+      }))
     }
     setCargando(false)
   }
