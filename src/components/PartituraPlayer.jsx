@@ -11,6 +11,7 @@ import PartituraVisual from './PartituraVisual'
 import PianoVisual from './PianoVisual'
 import MedidorAfinacion from './MedidorAfinacion'
 import InformeAfinacionPanel from './InformeAfinacionPanel'
+import AyudaPractica, { debeAbrirseSola, ayudaPracticaOculta } from './AyudaPractica'
 
 const VELOCIDADES = [0.5, 0.75, 1, 1.25, 1.5]
 
@@ -115,9 +116,13 @@ export default function PartituraPlayer({ partitura, pantallaCompleta, onVoz }) 
   // cambiara de alto todo el rato y el resto de la pantalla "saltara" para
   // arriba y abajo mientras se cantaba. En vez de eso, un signo de ayuda fijo
   // que el cantante abre cuando quiere (no cambia de tamaño solo).
-  const [ayudaAfinacionAbierta, setAyudaAfinacionAbierta] = useState(false)
+  const [ayudaAbierta, setAyudaAbierta] = useState(() => debeAbrirseSola())
+  const [ayudaOculta, setAyudaOculta] = useState(() => ayudaPracticaOculta())
   // "Grabarme y ver informe": panel para grabar un fragmento y recibir un informe
   const [informeAbierto, setInformeAbierto] = useState(false)
+  const [bloque, setBloque] = useState(null) // el bloque del reproductor: la hoja de grabación se ancla ahí
+  const controlesRef = useRef(null)
+  const [alturaControles, setAlturaControles] = useState(0) // alto del panel de reproducción (la hoja de grabación lo tapa entero)
 
   // Menú flotante de velocidad (se abre con el ícono de hamburguesa, en vez de
   // tener las 5 opciones siempre expuestas en la barra de controles) y, por
@@ -307,6 +312,23 @@ export default function PartituraPlayer({ partitura, pantallaCompleta, onVoz }) 
       else break
     }
     return irAPosicionMusical(posicionMusical)
+  }
+
+  // Muestra (y lleva a la vista) el compás indicado: mueve solo el cursor de la partitura, sin tocar el audio.
+  useEffect(() => {
+    const el = controlesRef.current
+    if (!el) return undefined
+    const medir = () => setAlturaControles(Math.round(el.getBoundingClientRect().height))
+    medir()
+    let ro = null
+    try { ro = new ResizeObserver(medir); ro.observe(el) } catch { /* sin ResizeObserver */ }
+    return () => { try { ro?.disconnect() } catch { /* nada */ } }
+  }, [informeAbierto, partituraParseada])
+
+  function mostrarCompas(numero) {
+    if (!partituraParseada || reproduciendo) return
+    const m = (partituraParseada.medidas || []).find((x) => String(x.numero) === String(numero))
+    if (m && velocidad > 0) setTiempoActual(m.tiempo / velocidad)
   }
 
   // Botones "compás anterior" / "compás siguiente": saltan al principio del
@@ -679,11 +701,11 @@ export default function PartituraPlayer({ partitura, pantallaCompleta, onVoz }) 
   // altura disponible del contenedor en vez de una altura fija acotada.
   return (
     <div style={{
-      background: '#F8F7F3', border: pantallaCompleta ? 'none' : '1px solid #E8E6DF',
+      position: 'relative', background: '#F8F7F3', border: pantallaCompleta ? 'none' : '1px solid #E8E6DF',
       borderRadius: pantallaCompleta ? 0 : '12px', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
       height: pantallaCompleta ? '100%' : 'min(72vh, 640px)',
-    }}>
+    }} ref={setBloque}>
       <div style={{ flex: '1 1 auto', overflowY: 'auto', padding: '18px 18px 12px' }}>
         <PartituraVisual
           musicxml={partitura.musicxml}
@@ -701,7 +723,7 @@ export default function PartituraPlayer({ partitura, pantallaCompleta, onVoz }) 
           propia, siempre visible como un único bloque pegado abajo. Mostrar u
           oír las demás voces quedó afuera: para eso ya está Repertorio, que
           tiene la partitura y el audio completos con todas las voces. */}
-      <div style={{ flex: '0 0 auto', boxShadow: '0 -4px 10px rgba(26,26,24,0.05)' }}>
+      <div ref={controlesRef} style={{ flex: '0 0 auto', boxShadow: '0 -4px 10px rgba(26,26,24,0.05)' }}>
         <div style={{ padding: '14px 18px 4px', borderTop: '1px solid #E8E6DF' }}>
           {/* Área de toque más alta que la barra visual (3px es muy fino para
               tocar con el dedo) — permite ir directo a un punto de la partitura
@@ -930,59 +952,21 @@ export default function PartituraPlayer({ partitura, pantallaCompleta, onVoz }) 
               📝 Grabarme y ver informe
             </button>
 
-            {/* Ayuda: el texto aparecía antes pegado debajo de estos botones y
-                empujaba el piano/medidor hacia abajo al abrirse (un bloque
-                que cambiaba de alto). Es un menú flotante — mismo patrón que
-                el de velocidad en la barra de transporte — que se superpone
-                sin mover nada de lugar, con una capa invisible atrás para
-                cerrarlo tocando afuera. Se abre hacia ARRIBA (bottom: 100%,
-                no top): esta fila está cerca del borde inferior del panel, y
-                desplegado hacia abajo el contenido quedaba tapado/afuera de
-                la pantalla. */}
-            <div style={{ position: 'relative' }}>
-              <button onClick={() => setAyudaAfinacionAbierta(a => !a)}
-                title="Cómo practicar la afinación"
-                aria-label="Cómo practicar la afinación"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: '26px', height: '26px', borderRadius: '50%',
-                  border: `1px solid ${ayudaAfinacionAbierta ? '#8A8878' : '#D3D1C7'}`,
-                  background: ayudaAfinacionAbierta ? '#EFEEE7' : '#FFFFFF',
-                  color: '#5F5E5A', fontSize: '13px', fontWeight: '600', cursor: 'pointer', padding: 0,
-                }}>
-                ?
+            {/* Ayuda: ventana en el medio (se abre sola una vez por sesión). Si el cantante eligió no verla más,
+                queda este enlace discreto para volver a abrirla. */}
+            {ayudaOculta && (
+              <button onClick={() => setAyudaAbierta(true)}
+                style={{ border: 'none', background: 'transparent', color: '#8A8878', fontSize: '12px', textDecoration: 'underline', cursor: 'pointer', padding: '4px 6px' }}>
+                Ver ayuda
               </button>
-              {ayudaAfinacionAbierta && (
-                <>
-                  <div onClick={() => setAyudaAfinacionAbierta(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
-                  {/* Antes centrada bajo el botón (left: 50% + translateX):
-                      como este botón es el más a la derecha de los tres, la
-                      ventana centrada se iba de la pantalla por el lado
-                      derecho y el texto quedaba cortado. Ahora el borde
-                      DERECHO de la ventana queda alineado al borde derecho
-                      del botón (right: 0, sin left/transform) y se extiende
-                      hacia la izquierda, que es donde hay lugar. */}
-                  <div style={{
-                    position: 'absolute', bottom: 'calc(100% + 8px)', right: 0,
-                    zIndex: 10, width: '260px', maxWidth: '72vw',
-                    fontSize: '12px', color: '#5F5E5A', background: '#FFFFFF', lineHeight: '1.5',
-                    border: '1px solid #E8E6DF', borderRadius: '10px', padding: '12px 14px',
-                    boxShadow: '0 4px 14px rgba(26,26,24,0.18)',
-                  }}>
-                    Para practicar la afinación, escuchá primero una sección, pausá
-                    y repetila cantándola. Tu afinación se refleja en las teclas del
-                    piano, y el medidor de afinación muestra tu rango: si se
-                    mantiene en verde y amarillo, tu afinación es estable.
-                    <br /><br />
-                    La primera vez el navegador va a pedir permiso para usar el
-                    micrófono — hace falta aceptarlo para que esto funcione.
-                  </div>
-                </>
-              )}
-            </div>
+            )}
           </div>
 
           {errorMic && <div style={{ fontSize: '12px', color: '#A32D2D', marginTop: '8px' }}>{errorMic}</div>}
+
+          {ayudaAbierta && (
+            <AyudaPractica onCerrar={(noMostrar) => { setAyudaAbierta(false); if (noMostrar) setAyudaOculta(true) }} />
+          )}
 
           {informeAbierto && vozPropia && partituraParseada && (
             <InformeAfinacionPanel
@@ -990,6 +974,9 @@ export default function PartituraPlayer({ partitura, pantallaCompleta, onVoz }) 
               voz={vozPropia}
               titulo={partitura.titulo}
               onCerrar={() => setInformeAbierto(false)}
+              anclaHoja={bloque}
+              alturaCubrir={alturaControles}
+              onIrACompas={mostrarCompas}
             />
           )}
 

@@ -12,6 +12,8 @@
 // "inicio" y "duracion" en cualquier unidad consistente (pulsos o segundos):
 // solo se usan de forma relativa, porque el cantante va a su propio tempo.
 
+import { nombreEnEspanol } from './afinacion'
+
 // Márgenes del informe para el cantante: algo permisivos, para no desalentar (un coro tolera ±20-25 cents).
 // Los márgenes estrictos de antes (±15) se siguen calculando aparte para el director (pctVerdeEstricto).
 export const BANDA_VERDE_CENTS = 20
@@ -219,10 +221,14 @@ function alinear(frames, notas, tExp, escala, lambda, offset, kMax) {
   return { asig, costo: mejorTotal }
 }
 
-function cuadrosVozeados(curva, desdeSeg = 0) {
+function cuadrosVozeados(curva, desdeSeg = 0, ignorar = []) {
   const t = [], m = []
   for (let i = 0; i < curva.t.length; i++) {
-    if (curva.vozeado[i] && curva.t[i] >= desdeSeg) { t.push(curva.t[i]); m.push(curva.midi[i]) }
+    if (!curva.vozeado[i] || curva.t[i] < desdeSeg) continue
+    const ti = curva.t[i]
+    // "ignorar": tramos [desde, hasta] en segundos (los clics de silencio que suenan mientras se graba)
+    if (ignorar.some((r) => ti >= r[0] && ti <= r[1])) continue
+    t.push(ti); m.push(curva.midi[i])
   }
   return { t, m }
 }
@@ -461,7 +467,7 @@ export function analizarGrabacion(muestras, sampleRate, notas, opciones = {}) {
   const curva = opciones.curva || extraerCurvaF0(muestras, sampleRate)
   // Lo anterior a "descartarAntesDeSeg" (el conteo con clics) se ignora: el clic
   // que se cuela en el micrófono no debe tomarse como una nota cantada.
-  const frames = cuadrosVozeados(curva, opciones.descartarAntesDeSeg || 0)
+  const frames = cuadrosVozeados(curva, opciones.descartarAntesDeSeg || 0, opciones.ignorar || [])
   const K = notas.length
   if (K === 0) return { error: 'sin_notas' }
   if (frames.t.length < 20) return { error: 'sin_voz', mensaje: 'No se detectó voz suficiente en la grabación.' }
@@ -474,16 +480,37 @@ export function analizarGrabacion(muestras, sampleRate, notas, opciones = {}) {
   const escala = Math.max(1, 4 * mediana(notas.map((n) => n.pulsoSeg ?? 0.5)))
   const tExp0 = notas.map((n) => yaSeg + n.inicio)
   const kMax = Math.min(16, K)
-  const offsetGrueso = estimarOffset(frames, notas, tExp0, escala)
-  let asig = alinear(frames, notas, tExp0, escala, 0.4, offsetGrueso, kMax).asig
-  // Cuadros enganchados a un armónico (ver corregirArmonicos): se corrigen antes de seguir.
-  const armonicosCorregidos = corregirArmonicos(frames, asig, notas, offsetGrueso)
-  // Segunda pasada: con los tiempos ajustados al tempo real de esta toma.
-  const ajuste1 = ajusteDesdeAsignacion(frames, asig, notas)
-  if (ajuste1) {
-    const tExp1 = notas.map((n) => ajuste1.a + ajuste1.b * n.inicio)
-    asig = alinear(frames, notas, tExp1, escala, 1.5, offsetGrueso, kMax).asig
+  const offsetEstimado = estimarOffset(frames, notas, tExp0, escala)
+  // Alineación completa (dos pasadas) con un corrimiento dado. Trabaja sobre una copia de las alturas
+  // porque corregirArmonicos las modifica.
+  function alinearCon(offset) {
+    const fr = { t: frames.t, m: frames.m.slice() }
+    let asig = alinear(fr, notas, tExp0, escala, 0.4, offset, kMax).asig
+    // Cuadros enganchados a un armónico (ver corregirArmonicos): se corrigen antes de seguir.
+    const armonicos = corregirArmonicos(fr, asig, notas, offset)
+    // Segunda pasada: con los tiempos ajustados al tempo real de esta toma.
+    const ajuste = ajusteDesdeAsignacion(fr, asig, notas)
+    if (ajuste) {
+      const tExp1 = notas.map((n) => ajuste.a + ajuste.b * n.inicio)
+      asig = alinear(fr, notas, tExp1, escala, 1.5, offset, kMax).asig
+    }
+    const cuenta = new Array(K).fill(0)
+    for (const j of asig) cuenta[j]++
+    return { fr, asig, armonicos, ajuste, offset, encontradas: cuenta.filter((c) => c >= 5).length }
   }
+  let intento = alinearCon(offsetEstimado)
+  // El corrimiento más "barato" a veces es un promedio que no representa a ninguna nota (unas notas graves
+  // bajas y otras justas, por ejemplo) y hace que una nota se pegue a la vecina y se pierda. Si faltan
+  // notas, se prueba también sin corrimiento y se queda con la alineación que encuentra más.
+  if (Math.abs(offsetEstimado) >= 0.25 && intento.encontradas < K) {
+    const alterno = alinearCon(0)
+    if (alterno.encontradas > intento.encontradas) intento = alterno
+  }
+  const offsetGrueso = intento.offset
+  const asig = intento.asig
+  const armonicosCorregidos = intento.armonicos
+  const ajuste1 = intento.ajuste
+  frames.m = intento.fr.m
 
   // Frames por nota
   const porNota = Array.from({ length: K }, () => ({ t: [], m: [] }))
@@ -554,7 +581,31 @@ export function analizarGrabacion(muestras, sampleRate, notas, opciones = {}) {
   }
 
   const validas = resultados.filter((r) => r.frames >= 5)
-  const offsetGlobal = validas.length ? Math.round(mediana(validas.map((r) => r.desviacionCents))) : 0
+  // Corrimiento general: normalmente la mediana de las notas. Si las notas se reparten en dos grupos (unas
+  // bajas y otras justas) esa mediana no representa a ninguno y las notas bien afinadas salen como "altas":
+  // se prueba también la mediana pesada por duración y el corrimiento cero, y se elige el que mejor
+  // describe la toma (solo si mejora el puntaje de forma clara).
+  let offsetGlobal = 0
+  if (validas.length) {
+    const medianaNotas = Math.round(mediana(validas.map((r) => r.desviacionCents)))
+    const totalFr = validas.reduce((s, r) => s + r.frames, 0)
+    let acum = 0, medianaPesada = medianaNotas
+    for (const r of [...validas].sort((a, b) => a.desviacionCents - b.desviacionCents)) {
+      acum += r.frames
+      if (acum >= totalFr / 2) { medianaPesada = r.desviacionCents; break }
+    }
+    const puntajeCon = (off) => validas.reduce((s, r) => {
+      const suave = suavesPorNota[r.indice] || []
+      return s + r.frames * puntajeZona(suave.map((v) => foldCents(v - off))).blando
+    }, 0) / totalFr
+    offsetGlobal = medianaNotas
+    let mejorPuntaje = puntajeCon(medianaNotas) + 3 // hay que superar a la mediana por un margen claro
+    for (const cand of [medianaPesada, 0]) {
+      if (cand === offsetGlobal) continue
+      const pj = puntajeCon(cand)
+      if (pj > mejorPuntaje) { mejorPuntaje = pj; offsetGlobal = cand }
+    }
+  }
   for (const r of validas) {
     // Relativa al desplazamiento general: si todo el fragmento está corrido,
     // una nota "distinta" es la que se aparta ADEMÁS de ese corrimiento.
@@ -650,6 +701,11 @@ export function analizarGrabacion(muestras, sampleRate, notas, opciones = {}) {
     hz: vibAmplios.length ? Math.round(mediana(vibAmplios.map((x) => x.vibratoHz)) * 10) / 10 : null,
   }
 
+  // Entrada: la primera nota, respecto de donde estaba escrita (solo cuando hubo conteo y se la oyó bien)
+  let entradaSeg = null
+  if (opciones.inicioCantoSeg != null && resultados[0] && resultados[0].frames >= 5) {
+    entradaSeg = Math.round((resultados[0].inicioSeg - (yaSeg + notas[0].inicio)) * 100) / 100
+  }
   const resumen = {
     notasEsperadas: K,
     notasDetectadas: validas.length,
@@ -670,6 +726,8 @@ export function analizarGrabacion(muestras, sampleRate, notas, opciones = {}) {
     confianza: Math.round(confianza * 100) / 100,
     alineacionDudosa: confianza < 0.45,
     armonicosCorregidos, // cuadros que el detector de altura confundió con un armónico (diagnóstico)
+    pulsoSeg: Math.round(mediana(notas.map((n) => n.pulsoSeg ?? 0.5)) * 1000) / 1000,
+    entradaSeg, // cuánto después (o antes, si es negativo) de lo escrito entró la primera nota; null si no se puede saber
     ritmo: ritmoResumen,
     vibrato,
     diagnostico: {
@@ -752,11 +810,21 @@ function redactarMensajes(inf) {
     )
   }
   if (r.notasSinMedir.length) {
-    const lista = r.notasSinMedir.slice(0, 4).map((x) => `${x.nombre ?? 'una nota'} (compás ${x.compas})`).join(', ')
+    const lista = r.notasSinMedir.slice(0, 4).map((x) => `${x.nombre ? nombreEnEspanol(x.nombre) : 'una nota'} (compás ${x.compas})`).join(', ')
     m.push(`No pude medir ${r.notasSinMedir.length === 1 ? 'esta nota' : 'estas notas'}: ${lista}. Suele pasar con notas muy cortas pegadas a otras, o si se saltearon.`)
   }
   if (r.notasDistintas.length) {
     m.push(`${r.notasDistintas.length} nota(s) parecen distintas de las escritas (más de ${UMBRAL_NOTA_DISTINTA_CENTS} cents de diferencia).`)
+  }
+  if (r.entradaSeg != null && r.pulsoSeg > 0) {
+    const e = r.entradaSeg
+    const tiempos = Math.round(Math.abs(e) / r.pulsoSeg)
+    const cuanto = `${Math.abs(e).toFixed(1).replace('.', ',')} s${tiempos >= 1 ? ` (${tiempos === 1 ? 'un tiempo' : `unos ${tiempos} tiempos`})` : ''}`
+    if (e > Math.max(0.6, r.pulsoSeg)) {
+      m.push(`Tu primera nota entró ${cuanto} después de lo escrito. Apoyate en los clics del conteo para ubicar la entrada.`)
+    } else if (e < -Math.max(0.4, 0.75 * r.pulsoSeg)) {
+      m.push(`Tu primera nota entró ${cuanto} antes de lo escrito. Esperá los clics del conteo para entrar justo.`)
+    }
   }
   const vb = r.vibrato
   if (vb && vb.amplias >= 1 && vb.amplias >= 0.4 * vb.largas) {
