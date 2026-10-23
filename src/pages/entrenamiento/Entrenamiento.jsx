@@ -128,7 +128,7 @@ function TarjetaSeccion({ icono, titulo, descripcion, detalle, color, bg, onClic
 
 const SECCIONES = {
   tecnica: { titulo: 'Técnica vocal', subtitulo: 'Respiración, resonancia y vocalización.' },
-  obras:   { titulo: 'Práctica de obras', subtitulo: 'Practicá tu voz en las obras del coro y mirá cómo te fue.' },
+  obras:   { titulo: 'Practicá tu afinación', subtitulo: 'Cantá, grabate y mirá tu informe.' },
   ritmo:   { titulo: 'Ritmo', subtitulo: 'Aprendé a leer y marcar el ritmo, nivel por nivel.' },
 }
 
@@ -210,9 +210,9 @@ export default function Entrenamiento() {
             descripcion="Respiración, resonancia y vocalización."
             detalle={!cargando && !error ? `${ejercicios.length} ${ejercicios.length === 1 ? 'ejercicio' : 'ejercicios'}` : null}
             onClick={() => setSeccion('tecnica')} />
-          <TarjetaSeccion icono="🎤" titulo="Práctica de obras" color="#378ADD" bg="#E6F1FB"
-            descripcion="Practicá tu voz en las obras del coro y mirá tu informe."
-            detalle={!cargandoPartituras ? `${partituras.length} ${partituras.length === 1 ? 'obra' : 'obras'}` : null}
+          <TarjetaSeccion icono="🎤" titulo="Practicá tu afinación" color="#378ADD" bg="#E6F1FB"
+            descripcion="Cantá, grabate y mirá tu informe."
+            detalle={!cargandoPartituras ? `${partituras.length} ${partituras.length === 1 ? 'práctica' : 'prácticas'}` : null}
             onClick={() => setSeccion('obras')} />
           <TarjetaSeccion icono="🥁" titulo="Ritmo" color="#B5791B" bg="#FBF3DF"
             descripcion="Escuchá, leé y marcá el ritmo. Se desbloquea nivel por nivel."
@@ -275,7 +275,7 @@ export default function Entrenamiento() {
       {seccion === 'obras' && (
         cargandoPartituras ? <Esqueleto cantidad={2} /> : partituras.length === 0 ? (
           <div style={{ fontSize: '13px', color: '#888780', padding: '30px 0', textAlign: 'center' }}>
-            Todavía no hay obras cargadas para practicar por voz.
+            Todavía no hay prácticas de afinación cargadas.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
