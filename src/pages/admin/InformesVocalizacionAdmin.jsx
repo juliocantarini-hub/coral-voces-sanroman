@@ -68,6 +68,9 @@ export default function InformesVocalizacionAdmin() {
   const [vista, setVista] = useState('ejercicio') // 'ejercicio' | 'cantante'
   const [busqueda, setBusqueda] = useState('')
   const [abierto, setAbierto] = useState(null)
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false)
+  const [borrando, setBorrando] = useState(false)
+  const [aviso, setAviso] = useState('')
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -120,7 +123,31 @@ export default function InformesVocalizacionAdmin() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  const cat = CATEGORIAS.find((c) => c.id === categoria)
+  // Borra el historial de la categoría elegida (de todos los cantantes y de todo el tiempo, no solo del período que se está viendo)
+  const borrarHistorial = async () => {
+    const coro = await getCoroActual()
+    const ids = ejercicios.filter((e) => e.categoria === categoria).map((e) => e.id)
+    if (!coro || !ids.length) { setConfirmandoBorrado(false); return }
+    setBorrando(true)
+    setAviso('')
+    const { count, error: err } = await supabase.from('actividad_entrenamiento')
+      .delete({ count: 'exact' })
+      .eq('coro_id', coro.id)
+      .in('ejercicio_id', ids)
+    setBorrando(false)
+    setConfirmandoBorrado(false)
+    if (err) { setError('No se pudo borrar el historial: ' + err.message); return }
+    if (!count) { setError('No se borró nada. Si ya hay prácticas, falta correr actividad_entrenamiento_directores.sql en Supabase (agrega el permiso para borrar).'); return }
+    setAviso(`Listo: se borraron ${plural(count, 'práctica', 'prácticas')} de ${cat.label.toLowerCase()}.`)
+    cargar()
+  }
+
+  // Además de las tres de siempre, cualquier otra categoría que tenga ejercicios cargados (así no queda práctica sin mostrar)
+  const categorias = useMemo(() => {
+    const extra = [...new Set(ejercicios.map((e) => e.categoria).filter((c) => c && !CATEGORIAS.some((b) => b.id === c)))].sort()
+    return [...CATEGORIAS, ...extra.map((id) => ({ id, label: id.charAt(0).toUpperCase() + id.slice(1).replace(/_/g, ' '), color: '#6B58B8', bg: '#EEEAF9' }))]
+  }, [ejercicios])
+  const cat = categorias.find((c) => c.id === categoria) || CATEGORIAS[0]
 
   // Todo lo de la categoría elegida: por ejercicio y por cantante
   const datos = useMemo(() => {
@@ -159,6 +186,20 @@ export default function InformesVocalizacionAdmin() {
     }
   }, [ejercicios, actividad, categoria])
 
+  // Cuántas prácticas hay de cada categoría en el período (para los números de las pestañas) y cuál fue la última
+  const resumen = useMemo(() => {
+    const catDe = new Map(ejercicios.map((e) => [e.id, e]))
+    const porCategoria = {}
+    for (const a of actividad) {
+      const e = catDe.get(a.ejercicio_id)
+      const k = e?.categoria || 'otra'
+      porCategoria[k] = (porCategoria[k] || 0) + 1
+    }
+    const ult = actividad[0] // vienen ordenadas de la más reciente a la más vieja
+    const eUlt = ult ? catDe.get(ult.ejercicio_id) : null
+    return { porCategoria, ultima: ult ? { cuando: ult.completado_en, nombre: eUlt?.nombre || 'un ejercicio que ya no está', categoria: eUlt?.categoria || null } : null }
+  }, [ejercicios, actividad])
+
   const q = busqueda.trim().toLowerCase()
   const persona = (id) => personas[id] || { nombre: 'Cantante' }
   const coincide = (id) => !q || (persona(id).nombre || '').toLowerCase().includes(q) || (persona(id).voz || '').toLowerCase().includes(q)
@@ -183,13 +224,14 @@ export default function InformesVocalizacionAdmin() {
       </p>
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-        {CATEGORIAS.map((c) => <Pastilla key={c.id} activa={categoria === c.id} color={c.color} onClick={() => { setCategoria(c.id); setAbierto(null) }}>{c.label}</Pastilla>)}
+        {categorias.map((c) => <Pastilla key={c.id} activa={categoria === c.id} color={c.color} onClick={() => { setCategoria(c.id); setAbierto(null); setConfirmandoBorrado(false) }}>{c.label} · {resumen.porCategoria[c.id] || 0}</Pastilla>)}
       </div>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
         {PERIODOS.map((p) => <Pastilla key={p.id} activa={periodo === p.id} onClick={() => setPeriodo(p.id)}>{p.label}</Pastilla>)}
       </div>
 
       {error && <div style={{ background: '#FCEBEB', border: '1px solid #E24B4A', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#501313', marginBottom: '12px' }}>{error}</div>}
+      {aviso && !error && <div style={{ background: '#E1F5EE', border: '1px solid #9FD6C3', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#0B4F3F', marginBottom: '12px' }}>{aviso}</div>}
       {cargando && <div style={{ fontSize: '13px', color: '#888780' }}>Cargando…</div>}
 
       {!cargando && !error && (
@@ -221,7 +263,7 @@ export default function InformesVocalizacionAdmin() {
                 : diag.coro > 0 && actividad.length === 0
                   ? `hay ${diag.coro} prácticas registradas en total en este coro, pero ninguna en este período: probá con "Todo".`
                   : diag.coro > 0
-                    ? `hay ${diag.coro} prácticas registradas en el coro, pero ninguna es de ${cat.label.toLowerCase()} en este período (probá otra categoría o "Todo").`
+                    ? `hay ${diag.coro} prácticas registradas en el coro, pero ninguna es de ${cat.label.toLowerCase()} en este período (probá otra categoría o "Todo").${resumen.ultima ? ` La última práctica registrada fue «${resumen.ultima.nombre}»${resumen.ultima.categoria ? ` (${(categorias.find((c) => c.id === resumen.ultima.categoria)?.label || resumen.ultima.categoria).toLowerCase()})` : ''}, el ${fechaCorta(resumen.ultima.cuando)}.` : ''}`
                     : diag.propias > 0
                       ? `vos tenés ${diag.propias} prácticas registradas pero esta pantalla no las ve: falta correr actividad_entrenamiento_directores.sql en Supabase (o el coro de esas prácticas es otro).`
                       : 'todavía no hay ninguna práctica guardada en este coro. Un ejercicio solo cuenta cuando se completa hasta el final (no si lo frenás antes). Si ya completaste alguno y sigue en cero, el guardado está fallando.'}
@@ -300,6 +342,33 @@ export default function InformesVocalizacionAdmin() {
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          {(resumen.porCategoria[categoria] || 0) > 0 && (
+            <div style={{ marginTop: '24px', paddingTop: '14px', borderTop: '1px solid #E8E6DF' }}>
+              {!confirmandoBorrado ? (
+                <button onClick={() => { setAviso(''); setConfirmandoBorrado(true) }}
+                  style={{ padding: '7px 14px', fontSize: '12px', borderRadius: '8px', border: '1px solid #E5B5B2', background: '#FFFFFF', color: '#C0392B', cursor: 'pointer', fontWeight: 500 }}>
+                  🗑 Borrar historial de {cat.label.toLowerCase()}…
+                </button>
+              ) : (
+                <div style={{ background: '#FCEBEB', border: '1px solid #E24B4A', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ fontSize: '13px', color: '#501313', lineHeight: 1.5, marginBottom: '10px' }}>
+                    Vas a borrar las <b>{plural(resumen.porCategoria[categoria], 'práctica', 'prácticas')}</b> de {cat.label.toLowerCase()} de todos los cantantes, de todo el tiempo (no solo del período que estás viendo). No se puede deshacer.
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button onClick={borrarHistorial} disabled={borrando}
+                      style={{ padding: '7px 14px', fontSize: '13px', borderRadius: '8px', border: 'none', background: '#C0392B', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600, opacity: borrando ? 0.6 : 1 }}>
+                      {borrando ? 'Borrando…' : 'Sí, borrar'}
+                    </button>
+                    <button onClick={() => setConfirmandoBorrado(false)} disabled={borrando}
+                      style={{ padding: '7px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #D3D1C7', background: '#FFFFFF', color: '#5F5E5A', cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
