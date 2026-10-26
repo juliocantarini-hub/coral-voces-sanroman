@@ -29,6 +29,7 @@ import AsistenciaAdmin from './pages/admin/AsistenciaAdmin'
 // Admin
 import AdminDashboard  from './pages/admin/AdminDashboard'
 import Usuarios        from './pages/admin/Usuarios'
+import CrearCantante    from './pages/admin/CrearCantante'
 import ObrasLista      from './pages/admin/ObrasLista'
 import ObraForm        from './pages/admin/ObraForm'
 import EventosLista    from './pages/admin/EventosLista'
@@ -86,6 +87,7 @@ export default function App() {
 
             <Route path="/admin" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AdminDashboard /></ConLayout></RutaProtegida>} />
             <Route path="/admin/usuarios" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><Usuarios /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/cantantes/nuevo" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><CrearCantante /></ConLayout></RutaProtegida>} />
             <Route path="/admin/obras" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ObrasLista /></ConLayout></RutaProtegida>} />
             <Route path="/admin/obras/nueva" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ObraForm /></ConLayout></RutaProtegida>} />
             <Route path="/admin/obras/:id" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><ObraForm /></ConLayout></RutaProtegida>} />
