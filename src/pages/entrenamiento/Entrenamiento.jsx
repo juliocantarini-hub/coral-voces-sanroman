@@ -9,6 +9,9 @@ import PartituraPlayer from '../../components/PartituraPlayer'
 import RitmoEntrenamiento from '../../components/RitmoEntrenamiento'
 import BotonVolver from '../../components/BotonVolver'
 import { useRitmoProgreso } from '../../hooks/useRitmoProgreso'
+import TeoriaEntrenamiento from '../../components/teoria/TeoriaEntrenamiento'
+import { useTeoriaProgreso } from '../../hooks/useTeoriaProgreso'
+import { COLOR_TEORIA, FONDO_TEORIA } from '../../lib/teoria'
 
 function useEsMovil() {
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768)
@@ -130,6 +133,7 @@ const SECCIONES = {
   tecnica: { titulo: 'Técnica vocal', subtitulo: 'Respiración, resonancia y vocalización.' },
   obras:   { titulo: 'Practicá tu afinación', subtitulo: 'Cantá, grabate y mirá tu informe.' },
   ritmo:   { titulo: 'Ritmo', subtitulo: 'Aprendé a leer y marcar el ritmo, nivel por nivel.' },
+  teoria:  { titulo: 'Entendé la partitura', subtitulo: 'Tu voz, los signos y las notas, paso a paso.' },
 }
 
 function Esqueleto({ cantidad = 3 }) {
@@ -149,6 +153,7 @@ export default function Entrenamiento() {
   const { partituras, cargando: cargandoPartituras } = usePartituras()
   const { cantidad: ejerciciosHoy } = useEjerciciosHoy()
   const ritmo = useRitmoProgreso()
+  const teoria = useTeoriaProgreso()
   const [seccion, setSeccion] = useState(null) // null = pantalla de inicio con las tres tarjetas
   // Tocar "Entrenamiento" en el menú estando adentro de una sección vuelve a la pantalla de inicio:
   // el menú navega a la misma ruta, que no recarga la página pero sí cambia la clave de la ubicación
@@ -218,6 +223,10 @@ export default function Entrenamiento() {
             descripcion="Escuchá, leé y marcá el ritmo. Se desbloquea nivel por nivel."
             detalle={detalleRitmo}
             onClick={() => setSeccion('ritmo')} />
+          <TarjetaSeccion icono="🎼" titulo="Entendé la partitura" color={COLOR_TEORIA} bg={FONDO_TEORIA}
+            descripcion="Tu voz, los signos y las notas, paso a paso."
+            detalle={teoria.vistas.length > 0 ? `${teoria.vistas.length} de ${teoria.total} lecciones` : 'Empezá por la lección 1'}
+            onClick={() => setSeccion('teoria')} />
         </div>
       )}
 
@@ -288,6 +297,9 @@ export default function Entrenamiento() {
 
       {/* Ritmo */}
       {seccion === 'ritmo' && <RitmoEntrenamiento prog={ritmo} onSalir={() => setSeccion(null)} />}
+
+      {/* Entendé la partitura */}
+      {seccion === 'teoria' && <TeoriaEntrenamiento prog={teoria} voz={perfil?.voz} onSalir={() => setSeccion(null)} onIrRitmo={() => setSeccion('ritmo')} />}
     </div>
   )
 }

@@ -656,6 +656,7 @@ export default function PartiturasAdmin() {
     { ruta: '/admin/informes-afinacion', icono: '🎤', titulo: 'Afinación', texto: 'Cómo afinan los cantantes y en qué notas fallan.' },
     { ruta: '/admin/ritmo', icono: '🥁', titulo: 'Ritmo', texto: 'Cómo les va con los ejercicios de ritmo.' },
     { ruta: '/admin/vocalizacion', icono: '🎶', titulo: 'Técnica vocal', texto: 'Qué ejercicios de respiración, resonancia y vocalización practican y cuántas veces.' },
+    { ruta: '/admin/teoria', icono: '🎼', titulo: 'Entendé la partitura', texto: 'Qué lecciones de teoría completó cada cantante.' },
   ]
   const pestanas = [
     { id: 'informes', label: 'Informes' },
