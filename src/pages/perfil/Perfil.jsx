@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { suscribirPush } from '../../hooks/usePushSubscription'
+import { useNavigate } from 'react-router-dom'
+import { useMisTemporadas } from '../../hooks/useReporteTemporada'
 
 const VOCES = ['soprano', 'contralto', 'tenor', 'bajo', 'director']
 
@@ -222,6 +224,9 @@ export default function Perfil() {
         )}
       </div>
 
+      {/* Mis temporadas (reportes de fin de temporada publicados) */}
+      <SeccionTemporadas perfilId={perfil?.id} />
+
       <SeccionNotificaciones usuario={usuario} />
 
       {/* Tamaño de fuente */}
@@ -333,6 +338,25 @@ function SeccionNotificaciones({ usuario }) {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+function SeccionTemporadas({ perfilId }) {
+  const navigate = useNavigate()
+  const { reportes } = useMisTemporadas(perfilId)
+  if (!reportes.length) return null
+  return (
+    <div style={{ background: '#FFFFFF', borderRadius: '14px', padding: '22px', border: '1px solid #E8E6DF', marginBottom: '14px' }}>
+      <h3 style={estilos.seccionTitulo}>Mis temporadas</h3>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {reportes.map(r => (
+          <button key={r.id} onClick={() => navigate(`/temporada/${r.id}`)}
+            style={{ background: '#E1F5EE', color: '#0F6E56', border: '1px solid #9FE1CB', borderRadius: '10px', padding: '9px 14px', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+            Temporada {r.temporada} →
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

@@ -43,6 +43,8 @@ import InformesVocalizacionAdmin from './pages/admin/InformesVocalizacionAdmin'
 import InformesTeoriaAdmin from './pages/admin/InformesTeoriaAdmin'
 import RitmoAdmin from './pages/admin/RitmoAdmin'
 import EstadisticaAdmin from './pages/admin/EstadisticaAdmin'
+import TemporadaAdmin from './pages/admin/TemporadaAdmin'
+import MiTemporada from './pages/temporada/MiTemporada'
 import PagosAdmin from './pages/admin/PagosAdmin'
 
 function RutaPublica({ children }) {
@@ -85,6 +87,7 @@ export default function App() {
             <Route path="/asistencia" element={<RutaProtegida><ConLayout><MiAsistencia /></ConLayout></RutaProtegida>} />
             <Route path="/companeros" element={<RutaProtegida><ConLayout><MisCompaneros /></ConLayout></RutaProtegida>} />
             <Route path="/perfil" element={<RutaProtegida><ConLayout><Perfil /></ConLayout></RutaProtegida>} />
+            <Route path="/temporada/:id" element={<RutaProtegida><ConLayout><MiTemporada /></ConLayout></RutaProtegida>} />
 
             <Route path="/admin" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><AdminDashboard /></ConLayout></RutaProtegida>} />
             <Route path="/admin/usuarios" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><Usuarios /></ConLayout></RutaProtegida>} />
@@ -109,6 +112,7 @@ export default function App() {
             <Route path="/admin/vocalizacion" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><InformesVocalizacionAdmin /></ConLayout></RutaProtegida>} />
             <Route path="/admin/teoria" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><InformesTeoriaAdmin /></ConLayout></RutaProtegida>} />
             <Route path="/admin/ritmo" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><RitmoAdmin /></ConLayout></RutaProtegida>} />
+            <Route path="/admin/temporada" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><TemporadaAdmin /></ConLayout></RutaProtegida>} />
             <Route path="/admin/estadistica" element={<RutaProtegida rolesPermitidos={['admin','director']}><ConLayout><EstadisticaAdmin /></ConLayout></RutaProtegida>} />
 
 
